@@ -1,12 +1,17 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
+using RushCtrl.Api.Infrastructure;
 using RushCtrl.Api.Modules.System;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Logging.ClearProviders().AddJsonConsole();
 builder.Services.AddProblemDetails();
 builder.Services.AddOpenApi();
+builder.Services.AddDbContext<RushCtrlDbContext>(options =>
+    options.UseNpgsql(builder.Configuration.GetConnectionString("Database"), database => database.CommandTimeout(3)));
+builder.Services.AddScoped<DatabaseReadinessCheck>();
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
@@ -30,6 +35,12 @@ builder.Services.AddAuthorization(options =>
     options.FallbackPolicy = new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build());
 
 var app = builder.Build();
+if (args.Contains("--migrate", StringComparer.Ordinal))
+{
+    using var scope = app.Services.CreateScope();
+    await scope.ServiceProvider.GetRequiredService<RushCtrlDbContext>().Database.MigrateAsync();
+    return;
+}
 app.UseExceptionHandler();
 app.Use(async (context, next) =>
 {
