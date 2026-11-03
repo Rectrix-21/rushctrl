@@ -1,6 +1,6 @@
 # RUSHCTRL foundation and dashboard design
 
-Status: Proposed for owner review; builder review completed. Application implementation has not started.
+Status: Approved by the owner in chat; builder review completed. Implementation and verification status are tracked in the README and learning notes.
 
 ## Intent
 

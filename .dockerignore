@@ -1,0 +1,14 @@
+.git
+.tools
+.local
+.superpowers
+.env
+.env.*
+**/node_modules
+**/.next
+**/bin
+**/obj
+**/test-results
+**/playwright-report
+**/*.tsbuildinfo
+outputs
