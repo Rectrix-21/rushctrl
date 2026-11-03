@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { RefreshCw } from "lucide-react";
-import { loadConnectionState, type ConnectionState } from "@/lib/api";
+import { createConnectionCheck, type ConnectionState } from "@/lib/api";
 
 const labels = {
   checking: "Checking connection",
@@ -13,24 +13,22 @@ const labels = {
 
 export function SystemStatus() {
   const [state, setState] = useState<ConnectionState | "checking">("checking");
+  const checker = useMemo(() => createConnectionCheck(setState), []);
   useEffect(() => {
-    let active = true;
     const check = () => {
-      void loadConnectionState().then((result) => {
-        if (active) setState(result);
-      });
+      void checker.refresh();
     };
     check();
     const timer = setInterval(check, 30000);
     return () => {
-      active = false;
+      checker.cancel();
       clearInterval(timer);
     };
-  }, []);
+  }, [checker]);
 
   async function refresh() {
     setState("checking");
-    setState(await loadConnectionState());
+    await checker.refresh();
   }
 
   return (

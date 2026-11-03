@@ -3,6 +3,23 @@ export type ConnectionState =
   | "api-unavailable"
   | "database-unavailable";
 
+export function createConnectionCheck(
+  publish: (state: ConnectionState) => void,
+  fetcher: typeof fetch = fetch,
+) {
+  let generation = 0;
+  return {
+    async refresh() {
+      const request = ++generation;
+      const state = await loadConnectionState(fetcher);
+      if (request === generation) publish(state);
+    },
+    cancel() {
+      generation++;
+    },
+  };
+}
+
 export async function loadConnectionState(
   fetcher: typeof fetch = fetch,
 ): Promise<ConnectionState> {

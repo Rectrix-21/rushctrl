@@ -89,7 +89,7 @@ Read the [API contract](docs/api/README.md), [architecture decision](docs/adr/00
 ## Verification status
 
 - Nine backend tests passed, including real PostgreSQL migration/readiness/foreign-key checks.
-- Six frontend connection-state tests passed; TypeScript, ESLint and production build passed.
+- Eight frontend connection-state tests passed; TypeScript, ESLint and production build passed.
 - Actual frontend-to-API health forwarding and API-to-PostgreSQL readiness returned HTTP 200 locally.
 - Compose configuration was validated with the official standalone Compose CLI. **Container startup remains unverified:** this machine has no Docker engine or WSL installation.
 - **Browser rendering, keyboard and responsive checks remain unverified:** browser access to the earlier local prototype was declined. No alternate browser path was used to bypass that decision.

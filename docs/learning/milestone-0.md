@@ -41,3 +41,13 @@ The GitHub Actions workflow describes backend integration checks with disposable
 Use `./scripts/check.ps1` to repeat the available checks. Browser and Compose runtime checks remain acceptance gaps and must not be marked complete from configuration inspection alone.
 
 The combined check caught a Windows development issue: rebuilding Debug output while the API was running locked its DLL. The check script now builds/tests Release output, leaving the running Debug development process alone. This is an output-directory fix, not a suppressed test failure.
+
+## 5. Independent review and regression fix
+
+A fresh reviewer checked the complete foundation and found a stale-status race: automatic polling and manual refresh could finish out of order, letting an older healthy result overwrite a newer failure. Because the indicator claims to show real connectivity, this was fixed before handoff.
+
+Automatic and manual checks now share a request-generation guard. Each refresh advances the generation; only the latest request may publish its result. Cleanup invalidates pending requests when the component unmounts. Two controlled asynchronous tests reproduced the incorrect older-success update and an update after cancellation before the guard was added; both then passed. The frontend suite now has eight tests.
+
+The reviewer found no critical issue in the foundation. Staffing/authentication workflows and production deployment remain outside this milestone's implementation scope. Actual Compose startup and browser keyboard/mobile checks remain required acceptance work, with the limits described above.
+
+Final available checks passed: 9 backend tests, 8 frontend tests, TypeScript, ESLint and production build. The native stop/restart script was also exercised: the recorded processes stopped, the database remained running, and the restarted API/dashboard returned HTTP 200. The full client-to-proxy-to-API-to-PostgreSQL health path returned ready.
