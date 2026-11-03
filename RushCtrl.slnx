@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/RushCtrl.Api/RushCtrl.Api.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/RushCtrl.Api.Tests/RushCtrl.Api.Tests.csproj" />
+  </Folder>
+</Solution>
