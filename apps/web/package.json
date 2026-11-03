@@ -1,0 +1,30 @@
+{
+  "name": "@rushctrl/web",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "next dev --hostname 127.0.0.1",
+    "build": "next build",
+    "start": "next start --hostname 127.0.0.1",
+    "lint": "eslint .",
+    "typecheck": "next typegen && tsc --noEmit",
+    "test": "node --test tests/api.test.ts",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "next": "16.4.4",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "lucide-react": "1.66.0"
+  },
+  "devDependencies": {
+    "typescript": "7.0.2",
+    "eslint": "10.14.0",
+    "eslint-config-next": "16.4.4",
+    "@types/node": "24.10.1",
+    "@types/react": "19.2.7",
+    "@types/react-dom": "19.2.3",
+    "@playwright/test": "1.64.1"
+  }
+}
