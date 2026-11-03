@@ -34,7 +34,9 @@ This is why we keep both application tests and a full-stack startup check. They 
 
 After the fix is pushed to GitHub, the Checks workflow must run on that new commit. The Compose job should build the images, start PostgreSQL, apply the migration, start the API and frontend, and pass its HTTP checks. Valid registry references and valid YAML are necessary checks, but they do not by themselves prove the complete stack started.
 
-The current machine has no Docker engine. Full container verification therefore depends on the new GitHub run. Reading detailed logs also requires an authenticated GitHub session, which is not currently available to the terminal.
+The current machine has no Docker engine. Full container verification was completed on GitHub's Linux runner after the owner pushed commit `8d48cfa`. The [successful Checks run](https://github.com/Rectrix-21/rushctrl/actions/runs/41718067240) passed API checks, frontend/browser checks, the actual Docker Compose build/startup, and both HTTP requests through the running frontend to the API/database.
+
+This is stronger evidence than checking image names or YAML alone: the fresh test machine actually downloaded the images, built the applications, created the database schema, and ran the services together.
 
 ## Try reading the file yourself
 

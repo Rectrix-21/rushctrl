@@ -1,5 +1,7 @@
 # Milestone 0 — implementation notes
 
+**Current result:** Milestone 0's automated acceptance passed in [GitHub Actions for commit 8d48cfa](https://github.com/Rectrix-21/rushctrl/actions/runs/41718067240). API, frontend/browser and full Docker Compose jobs succeeded. The sections below explain the implementation and the limitations encountered at the initial local handoff; the final section records how the remaining runtime checks were verified. A manual visual/accessibility audit remains separate from these smoke tests.
+
 ## 1. API foundation
 
 The repository is a standalone application on the local `milestone-0` branch. The downloaded .NET SDK is inside ignored `.tools/dotnet`, verified against Microsoft's SHA512 release metadata. Nothing has been pushed or deployed.
@@ -24,7 +26,7 @@ Dependency setup encountered a local certificate-chain issue in Node. Using `NOD
 
 ## 3. React dashboard and real connectivity
 
-Next.js renders the page shell; focused React components own navigation, sample schedule, detail panels and operational status. `Dashboard` uses local state for Day/Week and which informational panel is open. A native HTML dialog supplies modal focus and Escape behavior; browser verification of that interaction is still pending. The schedule data lives in one clearly named sample-data module and is never submitted as real staffing data.
+Next.js renders the page shell; focused React components own navigation, sample schedule, detail panels and operational status. `Dashboard` uses local state for Day/Week and which informational panel is open. A native HTML dialog supplies modal focus and Escape behavior; keyboard dismissal and focus restoration were later verified by the CI browser tests. The schedule data lives in one clearly named sample-data module and is never submitted as real staffing data.
 
 The connection component calls a typed loader through same-origin paths. It validates the API metadata and then checks database readiness, bounds requests with an AbortSignal timeout, and returns separate API-unavailable/database-unavailable states. It refreshes every 30 seconds and has a manual refresh button. A successful but malformed response cannot turn the indicator healthy.
 
@@ -36,9 +38,9 @@ Setup generates an ignored random database password, restores dependencies and t
 
 Docker Compose describes the same boundary: PostgreSQL becomes healthy, a one-shot migration succeeds, API readiness becomes healthy, then the frontend starts. Published ports use loopback and database storage uses a named volume. Dockerfiles use separate build/runtime stages and non-root runtime users. This configuration is for development, with administrative local database credentials and development OpenAPI, not production deployment.
 
-The GitHub Actions workflow describes backend integration checks with disposable PostgreSQL, frontend tests/build, browser smoke tests and Compose startup. No remote repository was created, so that workflow has not run remotely. The official standalone Compose CLI validated the configuration locally; there is no Docker engine or WSL installation, so containers have not been started.
+The GitHub Actions workflow runs backend integration checks with disposable PostgreSQL, frontend tests/build, browser smoke tests and Compose startup. At the initial local handoff it had not run remotely. The owner subsequently connected GitHub and pushed the application; after the image-tag fix described below, all three jobs passed. The local machine still has no Docker engine or WSL installation; container startup was verified on GitHub's runner instead.
 
-Use `./scripts/check.ps1` to repeat the available checks. Browser and Compose runtime checks remain acceptance gaps and must not be marked complete from configuration inspection alone.
+Use `./scripts/check.ps1` to repeat the locally available checks. At the initial handoff browser and Compose runtime checks were acceptance gaps. Those gaps were subsequently closed by actual execution on GitHub, rather than being marked complete from configuration inspection.
 
 The combined check caught a Windows development issue: rebuilding Debug output while the API was running locked its DLL. The check script now builds/tests Release output, leaving the running Debug development process alone. This is an output-directory fix, not a suppressed test failure.
 
@@ -48,6 +50,14 @@ A fresh reviewer checked the complete foundation and found a stale-status race: 
 
 Automatic and manual checks now share a request-generation guard. Each refresh advances the generation; only the latest request may publish its result. Cleanup invalidates pending requests when the component unmounts. Two controlled asynchronous tests reproduced the incorrect older-success update and an update after cancellation before the guard was added; both then passed. The frontend suite now has eight tests.
 
-The reviewer found no critical issue in the foundation. Staffing/authentication workflows and production deployment remain outside this milestone's implementation scope. Actual Compose startup and browser keyboard/mobile checks remain required acceptance work, with the limits described above.
+The reviewer found no critical issue in the foundation. Staffing/authentication workflows and production deployment remain outside this milestone's implementation scope. The required Compose startup and browser keyboard/mobile smoke checks subsequently passed in CI; complete manual visual/accessibility review is not claimed.
 
 Final available checks passed: 9 backend tests, 8 frontend tests, TypeScript, ESLint and production build. The native stop/restart script was also exercised: the recorded processes stopped, the database remained running, and the restarted API/dashboard returned HTTP 200. The full client-to-proxy-to-API-to-PostgreSQL health path returned ready.
+
+## 6. GitHub verification and the Docker correction
+
+The first Compose job failed because the API Dockerfile requested unpublished image tags ending in `-alpine`. A tag is an exact registry lookup name; Docker does not infer a compatible operating-system version. Both requests returned HTTP 404. Changing the references to the published `-alpine3.24` variants fixed the packaging error without changing application code.
+
+After commit `8d48cfa` was pushed, [Checks run 41718067240](https://github.com/Rectrix-21/rushctrl/actions/runs/41718067240) passed all three jobs. The Compose build/start step and both HTTP checks passed. The frontend job also passed Playwright tests on desktop and mobile configurations. These results verify the Milestone 0 foundation on a fresh Linux test machine, in addition to the native Windows checks.
+
+For a student, the distinction matters: a commit saves a checkpoint locally, pushing uploads it, and CI then tests that specific commit in a separate environment. A passing local test cannot prove that the container packaging works; that is why we tested both.

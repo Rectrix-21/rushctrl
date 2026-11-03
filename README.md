@@ -2,7 +2,7 @@
 
 A staffing operations application for hospitality teams, built with Next.js, ASP.NET Core and PostgreSQL.
 
-**Current stage: Milestone 0 foundation.** The API, initial database schema, real readiness checks, local startup tooling, and blue glass dashboard shell are implemented. Staffing figures are visibly synthetic. Scheduling, login, availability and coverage workflows are planned for Milestone 1; no real users, performance improvements, or production scale are claimed.
+**Current stage: Milestone 0 foundation — automated acceptance passed.** The API, initial database schema, real readiness checks, local startup tooling, and blue glass dashboard shell are implemented. Staffing figures are visibly synthetic. Scheduling, login, availability and coverage workflows are planned for Milestone 1; no real users, performance improvements, or production scale are claimed.
 
 ## Run locally on Windows
 
@@ -59,7 +59,7 @@ npm run build
 
 To include database integration tests, set `RUSHCTRL_TEST_DATABASE_CONNECTION` to an isolated server with permission to create test databases, then run `dotnet test RushCtrl.slnx -c Release` without the filter. Checks use Release output so the native development API can keep running from Debug output without Windows file locks.
 
-Playwright desktop/mobile smoke tests live in `apps/web/tests/e2e`. When browser execution is authorized, install Chromium with `npx playwright install chromium` from `apps/web`, then run `npm run test:e2e` from the root. Tests cover sample labels, view switching, modal keyboard behavior, mobile overflow and failed readiness. The CI workflow is configured to run them and a full Compose startup; it has not been run on a remote repository.
+Playwright desktop/mobile smoke tests live in `apps/web/tests/e2e`. When local browser execution is authorized, install Chromium with `npx playwright install chromium` from `apps/web`, then run `npm run test:e2e` from the root. Tests cover sample labels, view switching, modal keyboard behavior, mobile overflow and failed readiness. These tests and the full Compose startup passed in the [GitHub Actions run for commit 8d48cfa](https://github.com/Rectrix-21/rushctrl/actions/runs/41718067240).
 
 ## Architecture
 
@@ -91,10 +91,10 @@ Read the [API contract](docs/api/README.md), [architecture decision](docs/adr/00
 - Nine backend tests passed, including real PostgreSQL migration/readiness/foreign-key checks.
 - Eight frontend connection-state tests passed; TypeScript, ESLint and production build passed.
 - Actual frontend-to-API health forwarding and API-to-PostgreSQL readiness returned HTTP 200 locally.
-- Compose configuration was validated with the official standalone Compose CLI. **Container startup remains unverified:** this machine has no Docker engine or WSL installation.
-- **Browser rendering, keyboard and responsive checks remain unverified:** browser access to the earlier local prototype was declined. No alternate browser path was used to bypass that decision.
+- The full Docker Compose build/startup and frontend-to-API/database HTTP checks passed on GitHub's Linux runner for commit `8d48cfa`. Native Windows development continues to use the portable setup; no local Docker engine or WSL was installed.
+- Playwright desktop/mobile smoke tests passed in the same run, covering keyboard dialog dismissal, view switching, page overflow and failed readiness. A manual visual/accessibility audit has not been performed; passing smoke tests does not establish complete accessibility or visual quality.
 
-Milestone 0's remaining acceptance items are a successful full Compose startup and authorized browser smoke/visual checks. No deployment, remote repository or paid service has been created.
+Milestone 0's automated foundation acceptance is verified by the [successful Checks run](https://github.com/Rectrix-21/rushctrl/actions/runs/41718067240): API, web and Compose jobs all passed. GitHub is connected at `Rectrix-21/rushctrl`. No deployment or paid service has been created.
 
 ## Next milestone
 
