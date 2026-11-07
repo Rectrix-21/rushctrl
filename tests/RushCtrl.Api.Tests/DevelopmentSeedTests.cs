@@ -28,6 +28,10 @@ public sealed class DevelopmentSeedTests
         var db = scope.ServiceProvider.GetRequiredService<RushCtrlDbContext>();
         Assert.Equal(2, await db.Memberships.CountAsync(x => x.OrganizationId == DevelopmentSeed.OrganizationId));
         Assert.Single(await db.Locations.IgnoreQueryFilters().Where(x => x.OrganizationId == DevelopmentSeed.OrganizationId).ToListAsync());
+        var originalShifts = await db.Shifts.IgnoreQueryFilters().Where(x => x.OrganizationId == DevelopmentSeed.OrganizationId).OrderBy(x => x.Id).Select(x => x.Id).ToArrayAsync();
+        Assert.NotEmpty(originalShifts);
+        await DevelopmentSeed.RunAsync(fixture.Factory.Services, configuration, environment);
+        Assert.Equal(originalShifts, await db.Shifts.IgnoreQueryFilters().Where(x => x.OrganizationId == DevelopmentSeed.OrganizationId).OrderBy(x => x.Id).Select(x => x.Id).ToArrayAsync());
     }
 
     private sealed class TestEnvironment : IHostEnvironment

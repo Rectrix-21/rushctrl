@@ -48,6 +48,7 @@ public static class DevelopmentSeed
                 db.Memberships.Add(new Membership { OrganizationId = OrganizationId, UserId = id, Permission = permission });
         }
         await db.SaveChangesAsync();
+        await DemoScheduleSeed.RunAsync(db, scope.ServiceProvider.GetRequiredService<TimeProvider>().GetUtcNow());
         await transaction.CommitAsync();
     }
 }

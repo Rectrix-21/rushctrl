@@ -66,15 +66,17 @@ public sealed class SchedulingWorkflowTests
         Assert.Contains("weekly", await capped.Content.ReadAsStringAsync(), StringComparison.OrdinalIgnoreCase);
     }
 
-    [Fact, Trait("Category", "Database")]
-    public async Task ConcurrentAssignmentsCannotDoubleBookOrExceedWeeklyCap()
+    [Theory, Trait("Category", "Database")]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task ConcurrentAssignmentsCannotDoubleBookOrExceedWeeklyCap(bool overlapping)
     {
         await using var f = await WorkflowFixture.Create();
-        await f.AddSchedulingData(maxHours: 4);
+        await f.AddSchedulingData(maxHours: overlapping ? 40 : 4);
         using var a = await f.Login();
         using var b = await f.Login();
         var first = await f.CreateShift(a, "2027-01-11T08:00", "2027-01-11T12:00");
-        var next = await f.CreateShift(a, "2027-01-11T12:00", "2027-01-11T16:00");
+        var next = await f.CreateShift(a, overlapping ? "2027-01-11T10:00" : "2027-01-11T12:00", overlapping ? "2027-01-11T14:00" : "2027-01-11T16:00");
         var results = await Task.WhenAll(f.Assign(a, first), f.Assign(b, next));
         Assert.Single(results, r => r.StatusCode == HttpStatusCode.OK);
         Assert.Single(results, r => r.StatusCode == HttpStatusCode.Conflict);

@@ -35,3 +35,15 @@ Milestone 1 is in progress. This journal records working increments; it does not
 **Small exercise:** Read the availability loop in `AssignmentService`. With windows 08:00–10:00 and 10:00–12:00, explain why 08:00–12:00 is covered. Change the second window on paper to 10:01–12:00: the one-minute gap must reject assignment.
 
 **Input bounds:** A single entered interval is limited to 31 days, and schedule weeks to 2000–2100. These bound data-entry mistakes and expensive range checks; they are application limits, not employment rules.
+
+## 3. Availability, pending requests and coverage gaps
+
+**What changed:** Employees declare dated availability and request coverage for their own future assigned shift. Managers see those pending requests and can create staffing targets. The coverage calculator compares each target against assigned shifts, splitting periods where staffing changes. The development seed now includes qualifications, future availability, assigned/open shifts and a visible shortage. Re-running the seed preserves existing shifts.
+
+**Why:** A coverage request is a record of an employee asking for help; it does not remove their assignment. Request resolution and replacement approval come in Milestone 2. This first version explains that a pending request cannot yet be cancelled/resolved and blocks reassignment of that shift. Targets express how many people are needed for a role; open shifts do not count as staffed people.
+
+**Algorithm exercise:** A target needs two baristas from 08:00–14:00. One is assigned 08:00–10:00 and a different person 10:00–12:00. The shortage is one from 08:00–12:00, then two from 12:00–14:00. Two adjacent periods with the same shortage are merged for readability. An unassigned shift covering the whole day changes neither number.
+
+**Files to explore:** `CoverageEndpoints.cs` enforces who can request and who can set targets. `CoverageCalculator.cs` calculates shortage intervals without HTTP or database dependencies, so a small unit test can check the algorithm. `DemoScheduleSeed.cs` creates synthetic local scheduling data within the Development-only seed transaction.
+
+**Observed checks:** New coverage tests first failed for missing routes/calculation. The full API suite passed 36/36 after implementation and seed extension, including duplicate/ownership checks, manager-only targets, overlapping-target rejection, partial coverage, and simultaneous cap/overlap assignments. Test time is fixed independently of the machine's date.

@@ -10,7 +10,7 @@ public static class SchedulingEndpoints
     {
         var group = app.MapGroup("/api/v1/organizations/{organizationId:guid}")
             .AddEndpointFilter<ScheduleErrors>().AddEndpointFilter<MembershipFilter>().AddEndpointFilter<CsrfFilter>();
-        group.MapGet("/workspace", async (RushCtrlDbContext db, TenantScope tenant) =>
+        group.MapGet("/workspace", async (RushCtrlDbContext db, TenantScope tenant, TimeProvider clock) =>
         {
             var organization = await db.Organizations.SingleAsync(x => x.Id == tenant.OrganizationId);
             var locations = await db.Locations.OrderBy(x => x.Name).Select(x => new { x.Id, x.Name, x.TimeZoneId }).ToListAsync();
@@ -19,7 +19,9 @@ public static class SchedulingEndpoints
                                 where m.OrganizationId == tenant.OrganizationId && (tenant.IsManager || m.UserId == tenant.UserId)
                                 orderby u.DisplayName select new { u.Id, u.DisplayName, m.MaxWeeklyHours }).ToListAsync();
             var qualifications = await db.EmployeeSkills.Where(x => tenant.IsManager || x.UserId == tenant.UserId).Select(x => new { x.UserId, x.SkillId }).ToListAsync();
-            var today = DateOnly.FromDateTime(DateTime.UtcNow);
+            var next = await db.Shifts.Where(x => x.EndsAt > clock.GetUtcNow()).OrderBy(x => x.StartsAt).Select(x => (DateTimeOffset?)x.StartsAt).FirstOrDefaultAsync();
+            var zone = TimeZoneInfo.FindSystemTimeZoneById(locations.FirstOrDefault()?.TimeZoneId ?? "UTC");
+            var today = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(next ?? clock.GetUtcNow(), zone).DateTime);
             var monday = today.AddDays(-(((int)today.DayOfWeek + 6) % 7));
             return Results.Ok(new { organizationName = organization.Name, permission = tenant.IsManager ? "Manager" : "Employee", locations, skills, people, qualifications, suggestedWeek = monday.ToString("yyyy-MM-dd") });
         });
@@ -46,6 +48,7 @@ public static class SchedulingEndpoints
             return Results.Ok(await Views(db.Shifts.Where(x => x.Id == shift.Id), db).SingleAsync(ct));
         }).AddEndpointFilter<ManagerFilter>();
         group.MapAvailabilityEndpoints();
+        group.MapCoverageEndpoints();
     }
 
     public static async Task<Organizations.Location> Location(RushCtrlDbContext db, Guid id) =>

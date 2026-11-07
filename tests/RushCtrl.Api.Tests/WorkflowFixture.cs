@@ -31,6 +31,7 @@ internal sealed class WorkflowFixture(IsolatedDatabase database, WebApplicationF
         var factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
         {
             builder.UseEnvironment("Development");
+            builder.ConfigureServices(services => services.AddSingleton<TimeProvider>(new FixedClock()));
             builder.ConfigureAppConfiguration((_, config) => config.AddInMemoryCollection(new Dictionary<string, string?>
             { ["ConnectionStrings:Database"] = database.ConnectionString }));
         });
@@ -105,5 +106,10 @@ internal sealed class WorkflowFixture(IsolatedDatabase database, WebApplicationF
     {
         await factory.DisposeAsync();
         await database.DisposeAsync();
+    }
+
+    private sealed class FixedClock : TimeProvider
+    {
+        public override DateTimeOffset GetUtcNow() => DateTimeOffset.Parse("2026-11-07T12:00Z");
     }
 }
