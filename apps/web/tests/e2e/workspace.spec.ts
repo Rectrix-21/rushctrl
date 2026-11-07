@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { expect, test, type Page, type Request } from "@playwright/test";
-import { addDays } from "../../src/lib/schedule-view";
+import { addDays, dayLabel } from "../../src/lib/schedule-view";
 
 test.use({ trace: "off", screenshot: "off", video: "off" });
 
@@ -72,8 +72,22 @@ test("manager and employee complete a saved staffing workflow", async ({
     .click();
   const response = await createdResponse;
   expect(response.status()).toBe(201);
-  const created = (await response.json()) as { id: string };
-  const row = page.locator(`[data-shift-id="${created.id}"]`);
+  await expect(page).toHaveURL(/\/$/);
+  const createdCard = page
+    .locator(".saved-day")
+    .filter({
+      has: page.getByRole("heading", { name: dayLabel(date), exact: true }),
+    })
+    .locator("[data-shift-id]")
+    .filter({
+      has: page.getByText(`${hour}:00–${hour + 2}:00`, { exact: true }),
+    });
+  await expect(createdCard).toHaveCount(1);
+  await expect(createdCard).toContainText("Barista");
+  await expect(createdCard).toContainText("Open shift");
+  const createdId = await createdCard.getAttribute("data-shift-id");
+  expect(createdId).toBeTruthy();
+  const row = page.locator(`[data-shift-id="${createdId}"]`);
   await row
     .getByRole("button", { name: "Assign employee", exact: true })
     .click();

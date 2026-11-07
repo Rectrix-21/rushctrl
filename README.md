@@ -87,7 +87,7 @@ Read the [HTTP contract](docs/api/README.md), [staffing API details](docs/api/mi
 ## Verification status
 
 - Milestone 1 local API tests, frontend tests, typecheck, lint, production build and the actual HTTP manager/employee workflow have passed. Exact evidence and review status are recorded in the [learning journal](docs/learning/milestone-1.md).
-- API and Docker Compose acceptance passed on `0224c8a` in [Checks run 42401622823](https://github.com/Rectrix-21/rushctrl/actions/runs/42401622823). The browser workflow reached the open form, then failed on a dropdown label lookup; that test selector is corrected and awaits a new run. A build or test listing does not establish that browser interactions work.
+- API and Docker Compose acceptance passed again on `a5d4a63` in [Checks run 42402225906](https://github.com/Rectrix-21/rushctrl/actions/runs/42402225906). Browser cases now submit a shift successfully, then fail reading its response body through Chromium's debugging protocol. The test now checks the rendered saved card instead and awaits a new run. A build or test listing does not establish that browser interactions work.
 - Milestone 0's browser and Compose acceptance passed in [Checks run 41718067240](https://github.com/Rectrix-21/rushctrl/actions/runs/41718067240) for `8d48cfa`. That historical result does not verify Milestone 1 changes.
 - No manual visual/accessibility audit, deployment or paid service is claimed. GitHub repository: `Rectrix-21/rushctrl`.
 
