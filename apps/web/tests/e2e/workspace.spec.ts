@@ -60,7 +60,7 @@ test("manager and employee complete a saved staffing workflow", async ({
     .fill(startsAt);
   await page.getByLabel("Ends (location time)", { exact: true }).fill(endsAt);
   await page
-    .getByLabel("Required skill", { exact: true })
+    .getByRole("combobox", { name: "Required skill", exact: true })
     .selectOption({ label: "Barista" });
   const createdResponse = page.waitForResponse(
     (response) =>
@@ -78,7 +78,7 @@ test("manager and employee complete a saved staffing workflow", async ({
     .getByRole("button", { name: "Assign employee", exact: true })
     .click();
   await page
-    .getByLabel("Employee", { exact: true })
+    .getByRole("combobox", { name: "Employee", exact: true })
     .selectOption({ label: "Morgan Park" });
   await dialog
     .getByRole("button", { name: "Save assignment", exact: true })
