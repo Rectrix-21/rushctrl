@@ -6,7 +6,7 @@ Use the same-origin web proxy. JSON request/response properties use camelCase. U
 
 | Method / path | Request | Response |
 | --- | --- | --- |
-| GET `/api/v1/auth/csrf` | None; anonymous allowed | 200 `{ token }`, HttpOnly CSRF cookie, `Cache-Control: no-store` |
+| GET `/api/v1/auth/csrf` | None; anonymous allowed | 200 `{ token, userId }`, own authenticated UUID or null, HttpOnly CSRF cookie, `Cache-Control: no-store` |
 | POST `/api/v1/auth/login` | `{ email, password }` and `X-CSRF-TOKEN` | 204 and HttpOnly session cookie; generic 401 on failed credentials/lockout; 400 on invalid input/token |
 | GET `/api/v1/auth/session` | Session cookie | 200 `{ id, displayName, memberships: [{ organizationId, organizationName, permission }] }`; 401 when signed out |
 | POST `/api/v1/auth/logout` | Session cookie and fresh CSRF token | 204, session cookie cleared |
@@ -14,6 +14,8 @@ Use the same-origin web proxy. JSON request/response properties use camelCase. U
 Fetch a CSRF token again after login because tokens are identity-bound. The web client obtains a fresh token before every write. No public registration, password reset or trusted user/role/tenant headers exist. Failed login attempts use Identity lockout (five attempts / five minutes). Cookies are secure outside Development; local HTTP uses Development settings. Public hosting needs a separate production security/deployment design.
 
 ## Organization routes
+
+The UI binds its client to the displayed session's user ID. Before tenant writes and logout, it compares the fresh CSRF response's identity with that displayed identity. A change in another tab blocks the write and clears the stale workspace for re-sign-in. Explicit login can rebind the client. Identity-bound antiforgery validation also rejects a cookie switch between token issuance and mutation. This identity comparison is an intent precondition; server membership remains the authorization authority.
 
 Prefix: `/api/v1/organizations/{organizationId}`. Every route checks server-side membership. Unknown/inaccessible organizations and resources are 404; anonymous callers are 401; employee members calling manager-only routes are 403. Every POST/PATCH requires CSRF. Reads are not cached.
 

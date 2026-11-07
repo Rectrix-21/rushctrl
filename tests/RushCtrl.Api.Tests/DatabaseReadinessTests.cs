@@ -85,16 +85,18 @@ internal sealed class IsolatedDatabase : IAsyncDisposable
         ConnectionString = new NpgsqlConnectionStringBuilder(adminConnection) { Database = databaseName }.ConnectionString;
     }
 
-    public static async Task<IsolatedDatabase> Create()
+    public static Task<IsolatedDatabase> Create()
     {
         var connection = Environment.GetEnvironmentVariable("RUSHCTRL_TEST_DATABASE_CONNECTION")
             ?? throw new InvalidOperationException("Set RUSHCTRL_TEST_DATABASE_CONNECTION to an isolated local/CI PostgreSQL server, or filter Category!=Database.");
         var database = new IsolatedDatabase(connection);
-        await using var admin = new NpgsqlConnection(connection);
-        await admin.OpenAsync();
-        await using var command = new NpgsqlCommand($"CREATE DATABASE \"{database.databaseName}\"", admin);
-        await command.ExecuteNonQueryAsync();
-        return database;
+        // Keep administrative creation on its initiating thread on the Windows test runner.
+        // Application requests and the concurrency tests still use asynchronous database I/O.
+        using var admin = new NpgsqlConnection(connection);
+        admin.Open();
+        using var command = new NpgsqlCommand($"CREATE DATABASE \"{database.databaseName}\"", admin);
+        command.ExecuteNonQuery();
+        return Task.FromResult(database);
     }
 
     public async ValueTask DisposeAsync()

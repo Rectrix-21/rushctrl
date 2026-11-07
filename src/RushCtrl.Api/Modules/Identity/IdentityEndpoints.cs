@@ -30,7 +30,11 @@ public static class IdentityEndpoints
         auth.MapGet("/csrf", (HttpContext context, IAntiforgery antiforgery) =>
         {
             context.Response.Headers.CacheControl = "no-store";
-            return Results.Ok(new { token = antiforgery.GetAndStoreTokens(context).RequestToken });
+            return Results.Ok(new
+            {
+                token = antiforgery.GetAndStoreTokens(context).RequestToken,
+                userId = context.User.Identity?.IsAuthenticated == true ? (Guid?)context.User.UserId() : null
+            });
         }).AllowAnonymous();
         auth.MapPost("/login", async (LoginInput input, SignInManager<AppUser> signIn, HttpContext context) =>
         {

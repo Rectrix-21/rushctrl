@@ -8,6 +8,17 @@ namespace RushCtrl.Api.Tests;
 public sealed class IdentityWorkflowTests
 {
     [Fact, Trait("Category", "Database")]
+    public async Task CsrfResponseIdentifiesItsCurrentSessionForStaleTabProtection()
+    {
+        await using var fixture = await WorkflowFixture.Create();
+        using var anonymous = fixture.Factory.CreateClient();
+        var signedOut = await anonymous.GetFromJsonAsync<JsonElement>("/api/v1/auth/csrf");
+        Assert.Equal(JsonValueKind.Null, signedOut.GetProperty("userId").ValueKind);
+        using var manager = await fixture.Login();
+        var signedIn = await manager.GetFromJsonAsync<JsonElement>("/api/v1/auth/csrf");
+        Assert.Equal(fixture.ManagerId, signedIn.GetProperty("userId").GetGuid());
+    }
+    [Fact, Trait("Category", "Database")]
     public async Task FiveFailedAttemptsLockTheAccountWithoutChangingThePublicFailureMessage()
     {
         await using var fixture = await WorkflowFixture.Create();

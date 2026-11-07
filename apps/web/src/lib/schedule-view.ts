@@ -30,7 +30,11 @@ export function timeRange(start: string, end: string, zone: string) {
   });
   const a = localDay(start, zone);
   const b = localDay(end, zone);
-  return `${format.format(new Date(start))}–${format.format(new Date(end))}${a === b ? "" : ` (${dayLabel(b)})`}`;
+  const startTime = format.format(new Date(start));
+  const endTime = format.format(new Date(end));
+  return a === b
+    ? `${startTime}–${endTime}`
+    : `${dayLabel(a)} ${startTime} – ${dayLabel(b)} ${endTime}`;
 }
 export function occursOn(
   start: string,

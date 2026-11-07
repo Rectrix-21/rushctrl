@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page, type Request } from "@playwright/test";
 import { addDays } from "../../src/lib/schedule-view";
 
 test.use({ trace: "off", screenshot: "off", video: "off" });
@@ -36,7 +36,9 @@ async function signIn(page: Page, email: string, password: string) {
 
 test("manager and employee complete a saved staffing workflow", async ({
   page,
+  context,
 }, testInfo) => {
+  test.setTimeout(60000);
   const credentials = passwords();
   await page.goto("/");
   await signIn(page, "manager@northline.example", credentials.manager);
@@ -126,7 +128,30 @@ test("manager and employee complete a saved staffing workflow", async ({
     .getByRole("button", { name: "Submit coverage request", exact: true })
     .click();
   await expect(row).toContainText("Coverage requested · Pending");
-  await page.getByRole("button", { name: "Sign out", exact: true }).click();
+  await addAvailability.click();
+  const otherTab = await context.newPage();
+  await otherTab.goto("/");
+  await otherTab.getByRole("button", { name: "Sign out", exact: true }).click();
+  await signIn(otherTab, "manager@northline.example", credentials.manager);
+  await expect(
+    otherTab.getByRole("heading", { name: "Set the floor for a good day." }),
+  ).toBeVisible();
+  let staleWrites = 0;
+  const observe = (request: Request) => {
+    if (request.method() === "POST" && request.url().endsWith("/availability"))
+      staleWrites++;
+  };
+  page.on("request", observe);
+  await dialog
+    .getByRole("button", { name: "Save availability", exact: true })
+    .click();
+  await expect(
+    page.getByRole("heading", { name: "Sign in to your workspace" }),
+  ).toBeVisible();
+  await expect(page.getByRole("alert")).toContainText("changed or expired");
+  expect(staleWrites).toBe(0);
+  page.off("request", observe);
+  await otherTab.close();
   await signIn(page, "manager@northline.example", credentials.manager);
   await expect(row).toContainText("Coverage requested · Pending");
   await expect(page.locator("#requests")).toContainText("Morgan Park");

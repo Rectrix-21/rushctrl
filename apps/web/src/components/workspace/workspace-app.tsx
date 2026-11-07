@@ -61,7 +61,16 @@ export function WorkspaceApp() {
       </main>
     );
   if (!session)
-    return <SignIn client={client} notice={error} onSignedIn={setSession} />;
+    return (
+      <SignIn
+        client={client}
+        notice={error}
+        onSignedIn={(value) => {
+          setError("");
+          setSession(value);
+        }}
+      />
+    );
   return (
     <WorkspaceScreen
       key={session.id}
@@ -69,7 +78,7 @@ export function WorkspaceApp() {
       session={session}
       onSignedOut={() => setSession(null)}
       onExpired={() => {
-        setError("Your session expired. Sign in again.");
+        setError("Your sign-in changed or expired. Sign in again.");
         setSession(null);
       }}
     />

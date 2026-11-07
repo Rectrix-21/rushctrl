@@ -17,6 +17,8 @@ export class ApiError extends Error {
   }
 }
 export function createWorkspaceClient(fetcher: typeof fetch = fetch) {
+  let displayedIdentity: string | null | undefined;
+  let sessionGeneration = 0;
   async function request(path: string, options: RequestInit = {}) {
     let response: Response;
     try {
@@ -57,18 +59,33 @@ export function createWorkspaceClient(fetcher: typeof fetch = fetch) {
   return {
     get,
     async session() {
+      const generation = ++sessionGeneration;
       try {
-        return await get("/api/v1/auth/session", sessionSchema);
+        const session = await get("/api/v1/auth/session", sessionSchema);
+        if (generation === sessionGeneration) displayedIdentity = session.id;
+        return session;
       } catch (error) {
-        if (error instanceof ApiError && error.status === 401) return null;
+        if (error instanceof ApiError && error.status === 401) {
+          if (generation === sessionGeneration) displayedIdentity = null;
+          return null;
+        }
         throw error;
       }
     },
     async save(path: string, body?: unknown, method = "POST") {
       const csrf = await get(
         "/api/v1/auth/csrf",
-        z.object({ token: z.string().min(1) }),
+        z.object({ token: z.string().min(1), userId: z.guid().nullable() }),
       );
+      if (
+        path !== "/api/v1/auth/login" &&
+        displayedIdentity !== undefined &&
+        csrf.userId !== displayedIdentity
+      )
+        throw new ApiError(
+          401,
+          "Your session changed in another tab. Sign in again before saving.",
+        );
       try {
         await request(path, {
           method,

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { loadEnvFile } from "node:process";
 import {
+  ApiError,
   createWorkspaceClient,
   loadSchedule,
   workspaceSchema,
@@ -22,8 +23,7 @@ assert.ok(
   "Generate ignored local demo credentials before running this workflow.",
 );
 
-function clientWithCookies() {
-  const cookies = new Map();
+function clientWithCookies(cookies = new Map()) {
   return createWorkspaceClient(async (path, options) => {
     const headers = new Headers(options?.headers);
     headers.set(
@@ -152,11 +152,43 @@ assert.ok(
   ),
   "The manager must see the employee's saved request.",
 );
-for (const client of [manager, employee, freshManager])
+const sharedCookies = new Map();
+const staleTab = clientWithCookies(sharedCookies);
+const switchedTab = clientWithCookies(sharedCookies);
+await staleTab.save("/api/v1/auth/login", {
+  email: "employee@northline.example",
+  password: employeePassword,
+});
+await staleTab.session();
+await switchedTab.save("/api/v1/auth/login", {
+  email: "manager@northline.example",
+  password: managerPassword,
+});
+const availabilityBeforeSwitch = (
+  await loadSchedule(manager, org, location.id, week, true)
+).availability.length;
+await assert.rejects(
+  staleTab.save(base + "availability", {
+    locationId: location.id,
+    ...interval,
+  }),
+  (error) => error instanceof ApiError && error.status === 401,
+);
+assert.equal(
+  (await loadSchedule(manager, org, location.id, week, true)).availability
+    .length,
+  availabilityBeforeSwitch,
+);
+await staleTab.save("/api/v1/auth/login", {
+  email: "manager@northline.example",
+  password: managerPassword,
+});
+assert.equal((await staleTab.session()).id, session.id);
+for (const client of [manager, employee, freshManager, staleTab])
   await client.save("/api/v1/auth/logout");
 assert.equal(await manager.session(), null);
 console.log(
-  "HTTP workflow passed through the web proxy: login → create → assign → fresh-session persistence → employee availability/request → manager visibility → logout.",
+  "HTTP workflow passed through the web proxy: login → create → assign → fresh-session persistence → employee availability/request → manager visibility → stale-tab write blocked → explicit re-login → logout.",
 );
 console.log(
   "The synthetic shift and pending request remain in the local demo so you can inspect them.",

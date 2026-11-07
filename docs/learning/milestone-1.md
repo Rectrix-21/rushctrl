@@ -87,16 +87,41 @@ The [HTTP smoke script](../../scripts/smoke-workflow.mjs) already left synthetic
 
 | Check | Observed result for this branch |
 | --- | --- |
-| Full local `./scripts/check.ps1` | API 38/38; frontend 16/16; typecheck, lint and production build passed |
+| Full local `./scripts/check.ps1` after review fixes | API 39/39; frontend 19/19; typecheck, lint and production build passed |
 | Test-driven regressions | Missing endpoints/time/rules, gap algorithm, suggested-week privacy and uncertain save outcomes were observed failing before their fixes |
 | Native startup after script updates | Build/migrate/seed/start succeeded; existing demo edits preserved |
-| Actual web-proxy HTTP workflow | Passed twice, including fresh-session persistence and both roles |
+| Actual web-proxy HTTP workflow | Passed after review fixes, including fresh-session persistence, both roles, stale shared-cookie write rejection and explicit re-login |
 | EF model versus migration | No pending model changes |
 | Compose configuration | Validated with the standalone Compose CLI; no secret-expanded output printed |
 | Playwright discovery | Six desktop/mobile cases registered; discovery does not execute a browser |
 | New branch browser + Compose startup | Pending CI; local browser automation is unavailable and no local Docker engine is installed |
-| Independent code review | Pending at the time of this entry; record findings/fixes before handoff |
+| Independent code review | Two Important findings fixed with failing-then-passing regressions; no Critical or Minor findings raised; no second review claimed |
 
 Run `./scripts/check.ps1` for local automated checks. Run `node scripts/smoke-workflow.mjs` only when you want it to add another synthetic assignment/request. GitHub Actions is configured to test the API, start a real seeded stack for Playwright, and run the HTTP workflow against Docker Compose. A successful historical Milestone 0 run does not verify these new changes.
 
 For learning: a unit test checks a focused rule without the whole app; an integration test checks components working together, including the real database; an end-to-end browser test clicks the interface through a complete workflow. Each catches a different class of mistake.
+
+## Independent review and fixes
+
+A fresh reviewer checked the complete branch. Both Important findings were reproduced before changing code:
+
+- **Stale account in another tab:** Ordinary browser tabs share cookies. A screen showing Morgan could otherwise acquire a new CSRF token for Alex after another tab switched accounts, and save availability under the wrong person. CSRF now returns its own session user ID; the client compares it with the displayed identity before saving. A mismatch blocks the mutation and clears the stale workspace for sign-in. Login explicitly permits rebinding. Older session responses cannot overwrite the latest identity binding. Unit tests first accepted the unintended write, then correctly rejected it after the fix; a real shared-cookie HTTP test also verified that availability stayed unchanged. The Playwright workflow includes this case but still needs CI execution.
+- **Overnight labels:** A Sunday 23:00–Monday 01:00 shift appeared in Monday's day view without its Sunday start date. Intervals crossing a local date now show both dates. Regressions cover overnight, Sunday/Monday week boundaries and midnight endings; the original missing-start-date case failed before the fix.
+
+The final rerun exposed an additional test-infrastructure issue: `OpenPastAndOtherPersonsShiftsCannotBeRequested`, `SeedRequiresDevelopmentAndExplicitCredentialsAndIsIdempotent`, and `ManagerCanSaveAndReloadShiftAndEmployeeCannotCreateOne` intermittently failed before their assertions, while asynchronously creating a temporary database on this Windows runner. The first case also failed by itself. PostgreSQL's `psql` client could create/drop a diagnostic database successfully. Keeping only administrative test-database creation synchronous made the failing case and the full 39-test API suite pass. No business-rule tests were skipped or retried automatically, and application database operations/concurrency tests remain asynchronous. The underlying Windows async-I/O cause is not claimed as diagnosed beyond this observed setup boundary.
+
+A separate follow-up run of all 21 database integration cases also passed after that setup change. The current full local acceptance result is 39 API tests and 19 frontend tests, plus clean type checking/lint and a successful production build. Browser and container execution remain pending CI.
+
+## Decisions and remaining boundaries
+
+- Continue the previously approved narrow M1 architecture and the owner's authorization to begin it; the November 7 design elaborates builder details. A different intended workflow would require a follow-up adjustment.
+- Keep work in the open repository on `milestone-1`; adapt shell-based progress helpers to native PowerShell. This changes bookkeeping format, not application behavior.
+- Bring availability endpoints and the small request/target tables into the scheduling increment so assignment tests exercise declared availability with one coherent migration. Those tables arrived before their request/coverage endpoints.
+- Bound input intervals to 31 days and schedule queries to week years 2000–2100. Longer intervals/dates require a later deliberate change.
+- Keep request resolution, replacement approval, ranking, audit, simulation/reset and SignalR for M2. Pending requests cannot yet be resolved or cancelled; that limitation is visible before submission.
+- Availability editing/deletion and qualification/hour-cap administration remain outside this milestone. Local setup owns those seeded settings for now.
+- Public registration/recovery, deployment and production operational hardening remain outside the authorized local synthetic application. This is not a public service.
+- Browser layout/keyboard execution and Docker startup cannot be certified from static review. They remain pending this branch's CI run and owner visual checks.
+- Seed reruns preserve existing shifts instead of replenishing them automatically each week. A long-lived demo may need a future reset or fresh seed workflow.
+
+No review minors were deferred. Milestone 1 remains awaiting browser/container acceptance, so retain its progress ledger until that evidence arrives. The application and tests are committed locally; publish `milestone-1` from VS Code to trigger GitHub Actions. The older Milestone 0 run cannot substitute for those checks.
