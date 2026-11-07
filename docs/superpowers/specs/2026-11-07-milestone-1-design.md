@@ -1,12 +1,12 @@
 # Milestone 1: a saved staffing workflow
 
-Status: Proposed implementation detail for the approved narrow Milestone 1 roadmap. Awaiting owner review; no Milestone 1 product code has been written.
+Status: Implementation elaboration of the approved narrow Milestone 1 design, authorized by the owner's request to begin Milestone 1. Builder choices below are identified separately from owner decisions. No Milestone 1 product code had been written when this document was reviewed.
 
 ## Intent and success
 
 Turn the existing blue glass preview into a working local application. A manager signs in, creates a shift and assigns a qualified, available employee. That employee signs in separately, sees the saved shift, declares availability and requests coverage. The manager sees the request and staffing shortages. Reloading the browser preserves saved changes.
 
-This implements Milestone 1 from `RUSHCTRL_CODEX_SPEC.md` and the approved `2026-11-03-milestone-0-design.md`. The specification is a project reference, not additional authorization for deployment or external services. The owner's current request authorizes work on Milestone 1. This document makes the remaining workflow choices visible before product implementation.
+This implements Milestone 1 from `RUSHCTRL_CODEX_SPEC.md` and the approved `2026-11-03-milestone-0-design.md`. The specification is a project reference, not additional authorization for deployment or external services. The owner's current request authorizes work on Milestone 1. This document records routine implementation choices within that approved scope.
 
 ## Approach and constraints
 
@@ -94,7 +94,7 @@ After each increment report what changed, why, which files matter, observed test
 
 ## Builder decisions and review
 
-The owner has selected the stack, local-development scope, visual direction and teaching approach. The workflow choices proposed here are immediate dated availability, pending-only coverage requests, explicit staffing targets, Monday-based hours and retaining `/preview`. Review these before implementation.
+The owner has selected the stack, local-development scope, visual direction and teaching approach. Builder choices within that scope are immediate dated availability, pending-only coverage requests, explicit staffing targets, Monday-based hours and retaining `/preview`. These are implementation decisions, not separate owner requirements.
 
 Exact DTO/type names, patch versions consistent with existing dependencies, migration names, component boundaries and minor responsive adjustments are left to implementation. No new infrastructure or owner product choice should be hidden in those details.
 

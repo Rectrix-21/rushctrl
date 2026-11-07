@@ -1,6 +1,8 @@
 param([switch]$SkipBuild)
 . (Join-Path $PSScriptRoot 'local-common.ps1')
 $rushRoot = Get-RushRoot
+& node (Join-Path $PSScriptRoot 'create-env.mjs')
+Assert-RushSuccess 'Local credential setup'
 $rushConfig = Get-RushConfiguration
 Set-RushEnvironment
 Push-Location $rushRoot
@@ -16,7 +18,10 @@ try {
         Assert-RushSuccess 'API build'
     }
     $rushDll = Join-Path $rushRoot 'src/RushCtrl.Api/bin/Debug/net10.0/RushCtrl.Api.dll'
-    & '.tools/dotnet/dotnet.exe' $rushDll --migrate
+    $env:Demo__Enabled = 'true'
+    $env:Demo__ManagerPassword = $rushConfig['DEMO_MANAGER_PASSWORD']
+    $env:Demo__EmployeePassword = $rushConfig['DEMO_EMPLOYEE_PASSWORD']
+    & '.tools/dotnet/dotnet.exe' $rushDll --migrate --seed-demo
     Assert-RushSuccess 'Migration application'
     $rushApi = Start-Process -FilePath (Join-Path $rushRoot '.tools/dotnet/dotnet.exe') -ArgumentList ('"' + $rushDll + '"') -WorkingDirectory $rushRoot -WindowStyle Hidden -RedirectStandardOutput '.local/api.log' -RedirectStandardError '.local/api-errors.log' -PassThru
     $rushNext = Join-Path $rushRoot 'node_modules/next/dist/bin/next'
@@ -26,4 +31,9 @@ try {
     Write-Output "Web: http://localhost:$($rushConfig['WEB_PORT'])"
     Write-Output "API: http://localhost:$($rushConfig['API_PORT'])/health/ready"
     Write-Output 'Logs are in .local/. Stop app processes with ./scripts/stop.ps1.'
-} finally { Remove-Item Env:ConnectionStrings__Database -ErrorAction SilentlyContinue; Pop-Location }
+} finally {
+    foreach ($rushVariable in @('ConnectionStrings__Database', 'Demo__Enabled', 'Demo__ManagerPassword', 'Demo__EmployeePassword')) {
+        Remove-Item "Env:$rushVariable" -ErrorAction SilentlyContinue
+    }
+    Pop-Location
+}

@@ -1,15 +1,32 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using RushCtrl.Api.Modules.Identity;
 using RushCtrl.Api.Modules.Organizations;
 
 namespace RushCtrl.Api.Infrastructure;
 
-public sealed class RushCtrlDbContext(DbContextOptions<RushCtrlDbContext> options) : DbContext(options)
+public sealed class RushCtrlDbContext(DbContextOptions<RushCtrlDbContext> options, TenantScope tenant) : IdentityUserContext<AppUser, Guid>(options)
 {
+    public DbSet<Membership> Memberships => Set<Membership>();
     public DbSet<Organization> Organizations => Set<Organization>();
     public DbSet<Location> Locations => Set<Location>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        base.OnModelCreating(modelBuilder);
+        modelBuilder.Entity<AppUser>().Property(x => x.DisplayName).HasMaxLength(160);
+        modelBuilder.Entity<Membership>(entity =>
+        {
+            entity.HasKey(x => new { x.OrganizationId, x.UserId });
+            entity.HasOne<Organization>().WithMany().HasForeignKey(x => x.OrganizationId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<AppUser>().WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Restrict);
+            entity.Property(x => x.Permission).HasMaxLength(20);
+            entity.ToTable("Memberships", t =>
+            {
+                t.HasCheckConstraint("CK_Membership_Permission", "\"Permission\" IN ('Manager', 'Employee')");
+                t.HasCheckConstraint("CK_Membership_Hours", "\"MaxWeeklyHours\" > 0 AND \"MaxWeeklyHours\" <= 168");
+            });
+        });
         modelBuilder.Entity<Organization>(entity =>
         {
             entity.HasKey(x => x.Id);
@@ -19,6 +36,7 @@ public sealed class RushCtrlDbContext(DbContextOptions<RushCtrlDbContext> option
         });
         modelBuilder.Entity<Location>(entity =>
         {
+            entity.HasQueryFilter(x => x.OrganizationId == tenant.OrganizationId);
             entity.HasKey(x => x.Id);
             entity.HasAlternateKey(x => new { x.OrganizationId, x.Id });
             entity.Property(x => x.Name).HasMaxLength(160).IsRequired();
