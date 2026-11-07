@@ -125,7 +125,10 @@ export function ActionDialog({
       onCancel={(e) => {
         if (busy) e.preventDefault();
       }}
-      onClose={onClose}
+      onClose={(event) => {
+        // Effect cleanup can queue this event before Strict Mode reopens the dialog.
+        if (!event.currentTarget.open) onClose();
+      }}
     >
       <div className="dialog-heading">
         <div>
