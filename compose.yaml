@@ -22,8 +22,12 @@ services:
       context: .
       dockerfile: src/RushCtrl.Api/Dockerfile
     environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      Demo__Enabled: "true"
+      Demo__ManagerPassword: ${DEMO_MANAGER_PASSWORD:?Run scripts/setup.ps1 to generate demo passwords}
+      Demo__EmployeePassword: ${DEMO_EMPLOYEE_PASSWORD:?Run scripts/setup.ps1 to generate demo passwords}
       ConnectionStrings__Database: "Host=database;Database=${POSTGRES_DB:?};Username=${POSTGRES_USER:?};Password=${POSTGRES_PASSWORD:?}"
-    command: ["--migrate"]
+    command: ["--migrate", "--seed-demo"]
     depends_on:
       database:
         condition: service_healthy

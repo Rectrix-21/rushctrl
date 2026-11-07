@@ -33,15 +33,59 @@ jobs:
 
   web:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18.6-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_DB: postgres
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 3s --health-retries 12
     env:
       NEXT_TELEMETRY_DISABLED: 1
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__Database: Host=127.0.0.1;Port=5432;Database=postgres;Username=postgres
+      Demo__Enabled: "true"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: npm
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
       - run: npm ci --no-audit --no-fund
+      - name: Generate isolated demo credentials
+        run: |
+          node scripts/create-env.mjs
+          node --input-type=module <<'NODE'
+          import { loadEnvFile } from 'node:process';
+          import { appendFileSync } from 'node:fs';
+          loadEnvFile('.env');
+          for (const [source, target] of [['DEMO_MANAGER_PASSWORD', 'Demo__ManagerPassword'], ['DEMO_EMPLOYEE_PASSWORD', 'Demo__EmployeePassword']]) {
+            const value = process.env[source];
+            console.log(`::add-mask::${value}`);
+            appendFileSync(process.env.GITHUB_ENV, `${source}=${value}\n${target}=${value}\n`);
+          }
+          NODE
+      - run: dotnet build src/RushCtrl.Api -c Release --nologo
+      - name: Migrate seed and start the real API
+        run: |
+          if ! dotnet src/RushCtrl.Api/bin/Release/net10.0/RushCtrl.Api.dll --migrate --seed-demo > "$RUNNER_TEMP/migrate.log" 2>&1; then
+            cat "$RUNNER_TEMP/migrate.log"
+            exit 1
+          fi
+          ASPNETCORE_URLS=http://127.0.0.1:5080 dotnet src/RushCtrl.Api/bin/Release/net10.0/RushCtrl.Api.dll > "$RUNNER_TEMP/api.log" 2>&1 &
+          for attempt in {1..30}; do
+            if curl --fail --silent --output /dev/null http://127.0.0.1:5080/health/ready; then exit 0; fi
+            sleep 1
+          done
+          cat "$RUNNER_TEMP/api.log"
+          exit 1
       - run: npm test
       - run: npm run typecheck
       - run: npm run lint
@@ -54,10 +98,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
       - name: Generate ephemeral local configuration
-        run: |
-          printf 'POSTGRES_USER=rushctrl\nPOSTGRES_DB=rushctrl\nPOSTGRES_PASSWORD=%s\nPOSTGRES_PORT=55432\nAPI_PORT=5080\nWEB_PORT=3000\n' "$(openssl rand -hex 24)" > .env
+        run: node scripts/create-env.mjs
+      - run: npm ci --no-audit --no-fund
       - run: docker compose up --build --wait --wait-timeout 180
       - run: curl --fail http://127.0.0.1:3000/api/v1/system && curl --fail http://127.0.0.1:3000/health/ready
+      - run: node scripts/smoke-workflow.mjs
       - if: always()
         run: docker compose down

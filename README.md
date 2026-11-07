@@ -1,12 +1,12 @@
-# RUSHCTRL
+﻿# RUSHCTRL
 
 A staffing operations application for hospitality teams, built with Next.js, ASP.NET Core and PostgreSQL.
 
-**Current stage: Milestone 0 foundation — automated acceptance passed.** The API, initial database schema, real readiness checks, local startup tooling, and blue glass dashboard shell are implemented. Staffing figures are visibly synthetic. Scheduling, login, availability and coverage workflows are planned for Milestone 1; no real users, performance improvements, or production scale are claimed.
+**Current stage: Milestone 1 functional workflow — acceptance in progress.** Identity sign-in, organization permissions, saved shifts/assignments, dated availability, pending coverage requests and staffing gaps are implemented locally. The blue glass manager/employee screens use PostgreSQL-backed APIs. Local checks and a complete HTTP workflow have passed; this branch's browser and Docker checks still require CI. All people are synthetic. No real users, operational improvements or production scale are claimed.
 
 ## Run locally on Windows
 
-Prerequisite: Node.js 24. The setup script downloads the pinned .NET SDK and optional PostgreSQL binaries into ignored project-local directories. It installs no Windows service and changes no system-wide PATH.
+Prerequisite: Node.js 24. Setup downloads the pinned .NET SDK and optional PostgreSQL binaries into ignored project-local directories. It installs no Windows service and changes no system-wide PATH.
 
 From the repository root in PowerShell:
 
@@ -15,87 +15,82 @@ From the repository root in PowerShell:
 ./scripts/dev.ps1
 ```
 
-Open [the dashboard](http://localhost:3000). The API is on [port 5080](http://localhost:5080/api/v1/system), with [readiness](http://localhost:5080/health/ready) and [development OpenAPI](http://localhost:5080/openapi/v1.json).
+Open [RUSHCTRL](http://localhost:3000). Open the ignored `.local/demo-accounts.txt` in VS Code for the generated manager and employee credentials. Never commit that file or `.env`. Existing nonempty credentials are preserved during setup; changing a password in `.env` does not reset an existing account.
 
-The sample schedule is fixed to Friday, November 6, 2026, in America/Toronto. It is not a live staff schedule or a claim about today's operations. Day/Week switching and coverage detail panels are local UI interactions; no staffing changes are persisted. The connection indicator polls the real API/database every 30 seconds and can be refreshed manually.
+Startup applies migrations and explicitly seeds Development with Northline Coffee / Harbour / America/Toronto, qualifications, availability, future shifts and a staffing target. Later launches preserve saved shifts. The [original Milestone 0 preview](http://localhost:3000/preview) remains a fixed November 6 sample. The main workspace saves changes locally.
 
-Stop the web/API processes with `./scripts/stop.ps1`. Stop portable PostgreSQL separately with `./scripts/database.ps1 stop`. Logs, process IDs and database files live in ignored `.local/`. Do not delete `.local/pgdata` if you want to keep local data.
+Managers create shifts, assign employees and set staffing targets. Assignment rejects missing qualifications, incomplete availability, overlaps, excessive configured weekly hours and stale versions. Employees see their own shifts, declare availability and request coverage. A pending request keeps the original employee assigned and blocks reassignment. Cancellation/resolution and replacement approval arrive in Milestone 2; the UI explains this before submission. Availability is additive and immediate. Recurring availability, time-off administration and editing/deletion screens are deferred.
 
-If the project is already set up, run only `./scripts/dev.ps1`; setup reinstalls dependencies and is not required on every launch. Do not run portable and Docker stacks on the same ports simultaneously.
+The API exposes [metadata](http://localhost:5080/api/v1/system), [readiness](http://localhost:5080/health/ready) and [Development OpenAPI](http://localhost:5080/openapi/v1.json). Connection status polls every 30 seconds. The schedule reloads after saves or with Refresh schedule; live notifications are not implemented yet.
+
+If already set up, run only `./scripts/dev.ps1`. Stop the web/API with `./scripts/stop.ps1`; stop portable PostgreSQL separately with `./scripts/database.ps1 stop`. Logs and database files live in ignored `.local/`. Do not delete `.local/pgdata` if you want to keep local data. Do not run native and Docker stacks on the same ports simultaneously.
 
 ## Docker Compose
 
-Prerequisites: Docker with a running Linux-container engine, Docker Compose, and Node.js 24 for local secret generation. Docker Desktop/WSL installation is not automated by this repository.
+Prerequisites: Docker with a running Linux-container engine, Docker Compose, and Node.js 24 for local secret generation. Docker Desktop/WSL installation is not automated.
 
 ```text
 npm run setup:env
 docker compose up --build --wait
 ```
 
-All published ports bind to 127.0.0.1. PostgreSQL is persistent in a named volume. The one-shot migration service applies the schema after PostgreSQL is ready; the API starts after migration succeeds; the web service starts after API readiness succeeds. This is a local development arrangement, not a production migration/deployment strategy. The API runs in Development to expose the local OpenAPI document.
+All published ports bind to 127.0.0.1. PostgreSQL persists in a named volume. The one-shot migration service applies the schema and explicitly seeds Development with generated passwords; the API and frontend start after their dependencies are ready. Production refuses demo seeding. This arrangement is for local development, not production deployment.
 
-`docker compose down` stops containers without removing the database volume. The local `.env` contains generated database credentials and must remain untracked. `.env.example` intentionally has no working password; missing values fail configuration rather than using a committed default. Treat the local PostgreSQL role as a development-only administrative role, not a production application credential.
+`docker compose down` retains the database volume. `.env.example` has no working password; missing required values fail configuration. The local PostgreSQL role is administrative for development/tests and is not a production application credential.
 
-The web image embeds its server-side API origin at build time through `API_BASE_URL`. Rebuild after changing that origin. The default standalone image uses `http://api:8080`; native development uses `http://127.0.0.1:5080`. No database connection string is shipped to the browser.
+The web image embeds its server-side API origin at build time through `API_BASE_URL`. Rebuild after changing it. Compose uses `http://api:8080`; native development uses `http://127.0.0.1:5080`. Database credentials are not exposed to browser JavaScript.
 
-## Verify
+## Verify and learn
+
+With portable PostgreSQL running:
 
 ```powershell
 ./scripts/check.ps1
 ```
 
-This runs xUnit against isolated temporary PostgreSQL databases, then frontend unit tests, TypeScript, ESLint, and a production Next.js build. PostgreSQL must be running. Tests create and drop only uniquely named `rushctrl_test_*` databases; set test configuration only to a local or isolated CI PostgreSQL server, never a production server. `./scripts/check.ps1 -WithoutDatabase` runs the non-database API tests and frontend checks.
+This runs xUnit against isolated temporary PostgreSQL databases, frontend unit tests, TypeScript, ESLint and a production Next.js build. Tests create/drop only randomly named `rushctrl_test_*` databases. Test configuration must point to an isolated local/CI server with permission to create databases. `./scripts/check.ps1 -WithoutDatabase` runs the checks that do not require PostgreSQL. Release test output lets the native Debug API keep running without Windows file locks.
 
-With a system .NET 10 SDK, equivalent commands are:
+With the seeded web/API running, this additional HTTP workflow exercises both roles through the Next.js proxy:
 
 ```text
-dotnet build RushCtrl.slnx -c Release
-dotnet test RushCtrl.slnx -c Release --filter "Category!=Database"
-npm test
-npm run typecheck
-npm run lint
-npm run build
+node scripts/smoke-workflow.mjs
 ```
 
-To include database integration tests, set `RUSHCTRL_TEST_DATABASE_CONNECTION` to an isolated server with permission to create test databases, then run `dotnet test RushCtrl.slnx -c Release` without the filter. Checks use Release output so the native development API can keep running from Debug output without Windows file locks.
+It creates a synthetic shift and pending coverage request and leaves them in your local demo for inspection. It refuses non-loopback URLs. Repeated runs consume available demo scheduling slots and hours; it is not a reset command.
 
-Playwright desktop/mobile smoke tests live in `apps/web/tests/e2e`. When local browser execution is authorized, install Chromium with `npx playwright install chromium` from `apps/web`, then run `npm run test:e2e` from the root. Tests cover sample labels, view switching, modal keyboard behavior, mobile overflow and failed readiness. These tests and the full Compose startup passed in the [GitHub Actions run for commit 8d48cfa](https://github.com/Rectrix-21/rushctrl/actions/runs/41718067240).
+Playwright desktop/mobile tests are in `apps/web/tests/e2e`. They require the migrated/seeded API to be running. When browser execution is available, install Chromium with `npx playwright install chromium` from `apps/web`, then run `npm run test:e2e` from the root. The tests cover the sample preview and a real manager-create/assign/reload → employee-availability/request → manager-visibility flow, plus keyboard dialogs and mobile overflow. Credential-flow traces/screenshots/video are disabled. CI starts an isolated PostgreSQL/API and generates masked ephemeral credentials before these tests.
+
+Read the [student walkthrough and self-test guide](docs/learning/milestone-1.md). It explains the code in five increments, why each part exists, and what the checks prove.
 
 ## Architecture
 
 ```text
-Browser
-  -> Next.js UI and same-origin API/health proxy
-       -> ASP.NET Core API
-            -> EF Core -> PostgreSQL
+Browser → Next.js UI / same-origin API proxy → ASP.NET Core API → EF Core → PostgreSQL
 ```
 
-The API is a modular monolith: one deployable process with feature directories. It owns authorization and persistence. Milestone 0 exposes only operational data. Authentication services and a fallback authorization policy are configured now, but no public login, tenant-data endpoints or fake admin identity are exposed. Identity, membership checks and antiforgery enforcement arrive before staffing writes in Milestone 1.
+One API deployment owns Identity sessions, organization membership, scheduling rules and database writes. Protected routes require authentication by default. Server membership checks, tenant query filters and composite ownership constraints enforce organization boundaries. State-changing routes validate antiforgery tokens. Assignment uses transactions, employee locks, version tokens and PostgreSQL overlap constraints.
 
 | Path | Responsibility |
 | --- | --- |
-| `apps/web/src/app` | Routing, metadata and blue glass styles |
-| `apps/web/src/components/dashboard` | Sample schedule, navigation and detail UI |
-| `apps/web/src/components/system-status.tsx` | Real connection status |
-| `apps/web/src/lib/api.ts` | Typed, bounded health/metadata requests |
-| `src/RushCtrl.Api/Program.cs` | API configuration and request pipeline |
-| `src/RushCtrl.Api/Modules` | System endpoints and organization/location models |
-| `src/RushCtrl.Api/Infrastructure` | EF context and versioned migration |
-| `tests/RushCtrl.Api.Tests` | API contracts and PostgreSQL integration tests |
-| `scripts` | Local setup, startup, shutdown and checks |
+| `apps/web/src/components/workspace` | Real sessions, forms, saved schedule and coverage UI |
+| `apps/web/src/components/dashboard` | Preserved static preview |
+| `apps/web/src/lib/contracts.ts` | Runtime-checked API response shapes and TypeScript types |
+| `apps/web/src/lib/workspace-api.ts` | Same-origin requests, CSRF and error handling |
+| `src/RushCtrl.Api/Modules/Identity` | Users, memberships, sessions and explicit Development seed |
+| `src/RushCtrl.Api/Modules/Scheduling` | Scheduling endpoints, assignment rules and gap calculation |
+| `src/RushCtrl.Api/Infrastructure` | EF context and versioned migrations |
+| `tests/RushCtrl.Api.Tests` | HTTP, domain and isolated PostgreSQL integration tests |
+| `scripts` | Local setup/start/stop, checks and HTTP workflow |
 
-Read the [API contract](docs/api/README.md), [architecture decision](docs/adr/0001-modular-monolith.md), [security boundary](docs/adr/0002-identity-and-tenancy.md), and [step explanations](docs/learning/milestone-0.md).
+Read the [HTTP contract](docs/api/README.md), [staffing API details](docs/api/milestone-1.md), [architecture ADR](docs/adr/0001-modular-monolith.md) and [identity/tenancy ADR](docs/adr/0002-identity-and-tenancy.md).
 
 ## Verification status
 
-- Nine backend tests passed, including real PostgreSQL migration/readiness/foreign-key checks.
-- Eight frontend connection-state tests passed; TypeScript, ESLint and production build passed.
-- Actual frontend-to-API health forwarding and API-to-PostgreSQL readiness returned HTTP 200 locally.
-- The full Docker Compose build/startup and frontend-to-API/database HTTP checks passed on GitHub's Linux runner for commit `8d48cfa`. Native Windows development continues to use the portable setup; no local Docker engine or WSL was installed.
-- Playwright desktop/mobile smoke tests passed in the same run, covering keyboard dialog dismissal, view switching, page overflow and failed readiness. A manual visual/accessibility audit has not been performed; passing smoke tests does not establish complete accessibility or visual quality.
+- Milestone 1 local API tests, frontend tests, typecheck, lint, production build and the actual HTTP manager/employee workflow have passed. Exact evidence and review status are recorded in the [learning journal](docs/learning/milestone-1.md).
+- Docker Compose configuration can be validated locally, but there is no local Docker engine/WSL. This branch's container startup and browser tests remain pending CI. A build or test listing does not establish that browser interactions work.
+- Milestone 0's browser and Compose acceptance passed in [Checks run 41718067240](https://github.com/Rectrix-21/rushctrl/actions/runs/41718067240) for `8d48cfa`. That historical result does not verify Milestone 1 changes.
+- No manual visual/accessibility audit, deployment or paid service is claimed. GitHub repository: `Rectrix-21/rushctrl`.
 
-Milestone 0's automated foundation acceptance is verified by the [successful Checks run](https://github.com/Rectrix-21/rushctrl/actions/runs/41718067240): API, web and Compose jobs all passed. GitHub is connected at `Rectrix-21/rushctrl`. No deployment or paid service has been created.
+## After Milestone 1 acceptance
 
-## Next milestone
-
-Milestone 1 starts with ASP.NET Core Identity, organization membership and manager/employee policies. Then implement shift creation/listing/assignment, availability and coverage requests with no-overlap validation and tenant-isolation tests. Real-time notifications, ranking and Friday Rush simulation belong to Milestone 2.
+Milestone 2 adds request resolution, atomic replacement approval, candidate ranking with explanations, audit, an isolated Friday Rush simulation/reset workflow and SignalR notifications. Do not describe those as implemented yet.
