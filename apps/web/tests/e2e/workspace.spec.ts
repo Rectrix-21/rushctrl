@@ -162,7 +162,11 @@ test("manager and employee complete a saved staffing workflow", async ({
   await expect(
     page.getByRole("heading", { name: "Sign in to your workspace" }),
   ).toBeVisible();
-  await expect(page.getByRole("alert")).toContainText("changed or expired");
+  await expect(
+    page
+      .getByRole("region", { name: "Sign in to your workspace", exact: true })
+      .getByRole("alert"),
+  ).toContainText("changed or expired");
   expect(staleWrites).toBe(0);
   page.off("request", observe);
   await otherTab.close();
