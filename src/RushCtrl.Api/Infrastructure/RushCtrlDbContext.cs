@@ -1,19 +1,28 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using RushCtrl.Api.Modules.Identity;
+using RushCtrl.Api.Modules.Scheduling;
 using RushCtrl.Api.Modules.Organizations;
 
 namespace RushCtrl.Api.Infrastructure;
 
 public sealed class RushCtrlDbContext(DbContextOptions<RushCtrlDbContext> options, TenantScope tenant) : IdentityUserContext<AppUser, Guid>(options)
 {
+    public Guid OrganizationId => tenant.OrganizationId;
     public DbSet<Membership> Memberships => Set<Membership>();
+    public DbSet<Skill> Skills => Set<Skill>();
+    public DbSet<EmployeeSkill> EmployeeSkills => Set<EmployeeSkill>();
+    public DbSet<AvailabilityWindow> AvailabilityWindows => Set<AvailabilityWindow>();
+    public DbSet<Shift> Shifts => Set<Shift>();
+    public DbSet<StaffingRequirement> StaffingRequirements => Set<StaffingRequirement>();
+    public DbSet<CoverageRequest> CoverageRequests => Set<CoverageRequest>();
     public DbSet<Organization> Organizations => Set<Organization>();
     public DbSet<Location> Locations => Set<Location>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+        SchedulingModel.Configure(modelBuilder, this);
         modelBuilder.Entity<AppUser>().Property(x => x.DisplayName).HasMaxLength(160);
         modelBuilder.Entity<Membership>(entity =>
         {
@@ -36,7 +45,7 @@ public sealed class RushCtrlDbContext(DbContextOptions<RushCtrlDbContext> option
         });
         modelBuilder.Entity<Location>(entity =>
         {
-            entity.HasQueryFilter(x => x.OrganizationId == tenant.OrganizationId);
+            entity.HasQueryFilter(x => x.OrganizationId == OrganizationId);
             entity.HasKey(x => x.Id);
             entity.HasAlternateKey(x => new { x.OrganizationId, x.Id });
             entity.Property(x => x.Name).HasMaxLength(160).IsRequired();

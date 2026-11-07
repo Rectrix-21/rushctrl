@@ -19,3 +19,19 @@ Milestone 1 is in progress. This journal records working increments; it does not
 **Small exercise:** Find `MembershipFilter`. Explain why it gets the user ID from the authenticated session instead of a JSON field named `userId`. Then find the database's composite membership key: the same person can have different permissions in different organizations.
 
 **Limits:** These accounts are local synthetic development data. Public signup, password recovery and deployment configuration are outside this milestone. Changing a generated password in `.env` does not reset an existing account.
+
+## 2. Saved shifts and assignment rules
+
+**What changed:** Added organization-owned skills, employee qualifications, availability, shifts, staffing targets and request storage. Managers can create/list shifts and assign an employee. Assignment checks skills, full availability, other shifts and the configured weekly hours. The availability write was brought forward because it lets us test assignment against availability actually declared through HTTP.
+
+**Why:** A foreign key links a shift to a real location, skill and member. Composite foreign keys additionally require those records to belong to the same organization. A transaction makes validation and saving one operation. Locking the employee record makes concurrent assignment requests take turns; a PostgreSQL exclusion constraint is an additional guarantee that overlapping assigned shifts cannot be saved. A version token detects a browser acting on an old shift.
+
+**Time lesson:** An 08:00 Toronto shift in November is 13:00 UTC. Store the instant in UTC, but display it in the location's zone. A local week crossing daylight saving can have 167 or 169 actual hours. Half-open intervals let one shift end at exactly the instant the next begins. Overnight shifts contribute only the hours falling inside each local week.
+
+**Files to explore:** `Modules/Scheduling/Entities.cs` describes records; `SchedulingModel.cs` defines ownership and indexes; `ScheduleTime.cs` interprets dates; `AssignmentService.cs` owns assignment rules; `SchedulingEndpoints.cs` maps HTTP to those operations. The staffing migration creates the tables and database overlap constraints.
+
+**Observed checks:** The new tests first failed for missing time handling, routes and tables. The 27-test suite then passed, including persistent shifts, qualification/availability rejection, adjacency, overlaps, weekly caps, stale versions, concurrent requests and inaccessible references. Supplemental tests exercise real cross-organization IDs, bypass application validation to check PostgreSQL constraints, and check overnight/DST boundaries.
+
+**Small exercise:** Read the availability loop in `AssignmentService`. With windows 08:00–10:00 and 10:00–12:00, explain why 08:00–12:00 is covered. Change the second window on paper to 10:01–12:00: the one-minute gap must reject assignment.
+
+**Input bounds:** A single entered interval is limited to 31 days, and schedule weeks to 2000–2100. These bound data-entry mistakes and expensive range checks; they are application limits, not employment rules.

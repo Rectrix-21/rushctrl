@@ -15,6 +15,7 @@ builder.Services.AddDbContext<RushCtrlDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("Database"), database => database.CommandTimeout(3)));
 builder.Services.AddScoped<DatabaseReadinessCheck>();
 builder.Services.AddScoped<TenantScope>();
+builder.Services.AddScoped<AssignmentService>();
 builder.Services.AddIdentityCore<AppUser>(options =>
 {
     options.Password.RequiredLength = 12;

@@ -21,6 +21,9 @@ internal sealed class WorkflowFixture(IsolatedDatabase database, WebApplicationF
     public Guid LocationId { get; } = Guid.NewGuid();
     public Guid ManagerId { get; } = Guid.NewGuid();
     public Guid EmployeeId { get; } = Guid.NewGuid();
+    public Guid SkillId { get; } = Guid.NewGuid();
+    public Guid OtherLocationId { get; } = Guid.NewGuid();
+    public Guid OtherSkillId { get; } = Guid.NewGuid();
 
     public static async Task<WorkflowFixture> Create()
     {
@@ -67,6 +70,36 @@ internal sealed class WorkflowFixture(IsolatedDatabase database, WebApplicationF
     }
 
     public string Route(string path) => $"/api/v1/organizations/{OrganizationId}/{path}";
+
+    public async Task AddSchedulingData(bool qualified = true, bool available = true, int maxHours = 40)
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<RushCtrlDbContext>();
+        await db.Database.ExecuteSqlInterpolatedAsync($"INSERT INTO \"Skills\" (\"Id\", \"OrganizationId\", \"Name\") VALUES ({SkillId}, {OrganizationId}, 'Barista')");
+        await db.Database.ExecuteSqlInterpolatedAsync($"INSERT INTO \"Skills\" (\"Id\", \"OrganizationId\", \"Name\") VALUES ({OtherSkillId}, {OtherOrganizationId}, 'Other skill')");
+        await db.Database.ExecuteSqlInterpolatedAsync($"INSERT INTO \"Locations\" (\"Id\", \"OrganizationId\", \"Name\", \"TimeZoneId\", \"CreatedAt\") VALUES ({OtherLocationId}, {OtherOrganizationId}, 'Other location', 'America/Toronto', now())");
+        await db.Database.ExecuteSqlInterpolatedAsync($"UPDATE \"Memberships\" SET \"MaxWeeklyHours\" = {maxHours} WHERE \"OrganizationId\" = {OrganizationId} AND \"UserId\" = {EmployeeId}");
+        if (qualified) await Qualify();
+        if (available)
+            await db.Database.ExecuteSqlInterpolatedAsync($"INSERT INTO \"AvailabilityWindows\" (\"Id\", \"OrganizationId\", \"LocationId\", \"UserId\", \"StartsAt\", \"EndsAt\") VALUES ({Guid.NewGuid()}, {OrganizationId}, {LocationId}, {EmployeeId}, {DateTimeOffset.Parse("2027-01-11T00:00Z")}, {DateTimeOffset.Parse("2027-01-19T00:00Z")})");
+    }
+
+    public async Task Qualify()
+    {
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<RushCtrlDbContext>();
+        await db.Database.ExecuteSqlInterpolatedAsync($"INSERT INTO \"EmployeeSkills\" (\"OrganizationId\", \"UserId\", \"SkillId\") VALUES ({OrganizationId}, {EmployeeId}, {SkillId})");
+    }
+
+    public async Task<JsonElement> CreateShift(HttpClient client, string start, string end)
+    {
+        var response = await client.PostAsJsonAsync(Route("shifts"), new { locationId = LocationId, skillId = SkillId, startsAt = start, endsAt = end });
+        Assert.Equal(System.Net.HttpStatusCode.Created, response.StatusCode);
+        return await response.Content.ReadFromJsonAsync<JsonElement>();
+    }
+
+    public Task<HttpResponseMessage> Assign(HttpClient client, JsonElement shift) => client.PatchAsJsonAsync(
+        Route($"shifts/{shift.GetProperty("id").GetGuid()}/assignment"), new { userId = EmployeeId, version = shift.GetProperty("version").GetGuid() });
 
     public async ValueTask DisposeAsync()
     {

@@ -20,6 +20,7 @@ namespace RushCtrl.Api.Infrastructure.Migrations
                 .HasAnnotation("ProductVersion", "10.0.14")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
+            NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "btree_gist");
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<System.Guid>", b =>
@@ -208,8 +209,6 @@ namespace RushCtrl.Api.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasAlternateKey("OrganizationId", "Id");
-
                     b.HasIndex("OrganizationId", "Name")
                         .IsUnique();
 
@@ -240,6 +239,199 @@ namespace RushCtrl.Api.Infrastructure.Migrations
                     b.ToTable("Organizations", null, t =>
                         {
                             t.HasCheckConstraint("CK_Organizations_Name", "btrim(\"Name\") <> ''");
+                        });
+                });
+
+            modelBuilder.Entity("RushCtrl.Api.Modules.Scheduling.AvailabilityWindow", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("EndsAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("LocationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("StartsAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrganizationId", "LocationId");
+
+                    b.HasIndex("OrganizationId", "UserId", "StartsAt");
+
+                    b.ToTable("AvailabilityWindows", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_Availability_Range", "\"EndsAt\" > \"StartsAt\"");
+                        });
+                });
+
+            modelBuilder.Entity("RushCtrl.Api.Modules.Scheduling.CoverageRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("RequesterUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ShiftId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ShiftId")
+                        .IsUnique();
+
+                    b.HasIndex("OrganizationId", "RequesterUserId");
+
+                    b.HasIndex("OrganizationId", "ShiftId");
+
+                    b.ToTable("CoverageRequests", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_Coverage_Status", "\"Status\" = 'Pending'");
+                        });
+                });
+
+            modelBuilder.Entity("RushCtrl.Api.Modules.Scheduling.EmployeeSkill", b =>
+                {
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("SkillId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("OrganizationId", "UserId", "SkillId");
+
+                    b.HasIndex("OrganizationId", "SkillId");
+
+                    b.ToTable("EmployeeSkills");
+                });
+
+            modelBuilder.Entity("RushCtrl.Api.Modules.Scheduling.Shift", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("AssigneeUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("EndsAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("LocationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("SkillId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("StartsAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AssigneeUserId", "StartsAt");
+
+                    b.HasIndex("OrganizationId", "AssigneeUserId");
+
+                    b.HasIndex("OrganizationId", "SkillId");
+
+                    b.HasIndex("OrganizationId", "LocationId", "StartsAt");
+
+                    b.ToTable("Shifts", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_Shift_Range", "\"EndsAt\" > \"StartsAt\"");
+                        });
+                });
+
+            modelBuilder.Entity("RushCtrl.Api.Modules.Scheduling.Skill", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrganizationId", "Name")
+                        .IsUnique();
+
+                    b.ToTable("Skills");
+                });
+
+            modelBuilder.Entity("RushCtrl.Api.Modules.Scheduling.StaffingRequirement", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("EndsAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("LocationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("RequiredCount")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("SkillId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("StartsAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrganizationId", "SkillId");
+
+                    b.HasIndex("OrganizationId", "LocationId", "StartsAt");
+
+                    b.ToTable("StaffingRequirements", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_Requirement_Count", "\"RequiredCount\" > 0 AND \"RequiredCount\" <= 100");
+
+                            t.HasCheckConstraint("CK_Requirement_Range", "\"EndsAt\" > \"StartsAt\"");
                         });
                 });
 
@@ -290,6 +482,102 @@ namespace RushCtrl.Api.Infrastructure.Migrations
                     b.HasOne("RushCtrl.Api.Modules.Organizations.Organization", null)
                         .WithMany()
                         .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RushCtrl.Api.Modules.Scheduling.AvailabilityWindow", b =>
+                {
+                    b.HasOne("RushCtrl.Api.Modules.Organizations.Location", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId", "LocationId")
+                        .HasPrincipalKey("OrganizationId", "Id")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RushCtrl.Api.Modules.Identity.Membership", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId", "UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RushCtrl.Api.Modules.Scheduling.CoverageRequest", b =>
+                {
+                    b.HasOne("RushCtrl.Api.Modules.Identity.Membership", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId", "RequesterUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RushCtrl.Api.Modules.Scheduling.Shift", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId", "ShiftId")
+                        .HasPrincipalKey("OrganizationId", "Id")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RushCtrl.Api.Modules.Scheduling.EmployeeSkill", b =>
+                {
+                    b.HasOne("RushCtrl.Api.Modules.Scheduling.Skill", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId", "SkillId")
+                        .HasPrincipalKey("OrganizationId", "Id")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RushCtrl.Api.Modules.Identity.Membership", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId", "UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RushCtrl.Api.Modules.Scheduling.Shift", b =>
+                {
+                    b.HasOne("RushCtrl.Api.Modules.Identity.Membership", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId", "AssigneeUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("RushCtrl.Api.Modules.Organizations.Location", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId", "LocationId")
+                        .HasPrincipalKey("OrganizationId", "Id")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RushCtrl.Api.Modules.Scheduling.Skill", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId", "SkillId")
+                        .HasPrincipalKey("OrganizationId", "Id")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RushCtrl.Api.Modules.Scheduling.Skill", b =>
+                {
+                    b.HasOne("RushCtrl.Api.Modules.Organizations.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RushCtrl.Api.Modules.Scheduling.StaffingRequirement", b =>
+                {
+                    b.HasOne("RushCtrl.Api.Modules.Organizations.Location", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId", "LocationId")
+                        .HasPrincipalKey("OrganizationId", "Id")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RushCtrl.Api.Modules.Scheduling.Skill", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId", "SkillId")
+                        .HasPrincipalKey("OrganizationId", "Id")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });
