@@ -124,4 +124,12 @@ A separate follow-up run of all 21 database integration cases also passed after 
 - Browser layout/keyboard execution and Docker startup cannot be certified from static review. They remain pending this branch's CI run and owner visual checks.
 - Seed reruns preserve existing shifts instead of replenishing them automatically each week. A long-lived demo may need a future reset or fresh seed workflow.
 
-No review minors were deferred. Milestone 1 remains awaiting browser/container acceptance, so retain its progress ledger until that evidence arrives. The application and tests are committed locally; publish `milestone-1` from VS Code to trigger GitHub Actions. The older Milestone 0 run cannot substitute for those checks.
+No review minors were deferred. Milestone 1 remains awaiting browser/container acceptance, so retain its progress ledger until that evidence arrives. The older Milestone 0 run cannot substitute for those checks.
+
+## First GitHub acceptance run
+
+The owner published `milestone-1` at `465a095`. [The first run](https://github.com/Rectrix-21/rushctrl/actions/runs/42400724102) passed the API job but failed the browser workflow and Compose startup. These failures keep acceptance open. Detailed job logs require GitHub sign-in; their exact errors are still needed to diagnose those failures.
+
+Inspecting the container separately revealed that its small Alpine base image omits time-zone files. The runtime image now installs `tzdata`, which supplies the IANA rules used by `America/Toronto`. Microsoft’s [base image definition](https://raw.githubusercontent.com/dotnet/dotnet-docker/main/src/runtime-deps/10.0/alpine3.24/amd64/Dockerfile) lists the omitted packages, and [.NET’s Unix implementation](https://raw.githubusercontent.com/dotnet/runtime/v10.0.0/src/libraries/System.Private.CoreLib/src/System/TimeZoneInfo.Unix.NonAndroid.cs) reads zone files from disk. No time-zone conversion rules in the application changed. Compose configuration validation passed after the edit; actual container startup still needs a new GitHub run. The original Compose failure is not attributed to this dependency until its logs confirm it.
+
+For learning: a container is a separately assembled operating environment. A library can compile successfully while an operating-system data dependency is missing at runtime. That is why we test both the application and its packaged container.
