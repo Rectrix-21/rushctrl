@@ -19,7 +19,7 @@ public static class SchedulingEndpoints
                                 where m.OrganizationId == tenant.OrganizationId && (tenant.IsManager || m.UserId == tenant.UserId)
                                 orderby u.DisplayName select new { u.Id, u.DisplayName, m.MaxWeeklyHours }).ToListAsync();
             var qualifications = await db.EmployeeSkills.Where(x => tenant.IsManager || x.UserId == tenant.UserId).Select(x => new { x.UserId, x.SkillId }).ToListAsync();
-            var next = await db.Shifts.Where(x => x.EndsAt > clock.GetUtcNow()).OrderBy(x => x.StartsAt).Select(x => (DateTimeOffset?)x.StartsAt).FirstOrDefaultAsync();
+            var next = await db.Shifts.Where(x => x.EndsAt > clock.GetUtcNow() && (tenant.IsManager || x.AssigneeUserId == tenant.UserId)).OrderBy(x => x.StartsAt).Select(x => (DateTimeOffset?)x.StartsAt).FirstOrDefaultAsync();
             var zone = TimeZoneInfo.FindSystemTimeZoneById(locations.FirstOrDefault()?.TimeZoneId ?? "UTC");
             var today = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(next ?? clock.GetUtcNow(), zone).DateTime);
             var monday = today.AddDays(-(((int)today.DayOfWeek + 6) % 7));

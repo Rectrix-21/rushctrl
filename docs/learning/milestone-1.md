@@ -47,3 +47,17 @@ Milestone 1 is in progress. This journal records working increments; it does not
 **Files to explore:** `CoverageEndpoints.cs` enforces who can request and who can set targets. `CoverageCalculator.cs` calculates shortage intervals without HTTP or database dependencies, so a small unit test can check the algorithm. `DemoScheduleSeed.cs` creates synthetic local scheduling data within the Development-only seed transaction.
 
 **Observed checks:** New coverage tests first failed for missing routes/calculation. The full API suite passed 36/36 after implementation and seed extension, including duplicate/ownership checks, manager-only targets, overlapping-target rejection, partial coverage, and simultaneous cap/overlap assignments. Test time is fixed independently of the machine's date.
+
+## 4. Real screens and typed requests
+
+**What changed:** The main route now checks the session and shows sign-in or a role-specific workspace. Managers can create/assign shifts and add staffing targets. Employees can see their assigned shifts, add availability and request coverage. Day/week views, location/week selection, request lists and gap summaries use actual saved API data. The old static screen remains at `/preview`. Styling extends the approved blue glass system.
+
+**How React fits:** A component is a reusable piece of the screen. State is the component's current memory, such as the selected week or open dialog. An effect loads data when its inputs change; cleanup ignores responses belonging to a screen the user has already left. Saving sends a request to the API, then reloads the authoritative data instead of pretending the change succeeded locally.
+
+**Files to explore:** `WorkspaceApp` handles sessions/sign-in; `WorkspaceScreen` handles organization/location/week; `ScheduleBoard` shows saved data; `ActionDialog` handles forms. `contracts.ts` defines runtime-checked response shapes, `forms.ts` validates inputs, and `workspace-api.ts` handles same-origin requests and fresh CSRF tokens. [Zod's official schema reference](https://zod.dev/api) explains the validation library.
+
+**Failure lesson:** A network timeout after submitting a change does not prove the save failed: the database may have committed before the response was lost. The client never silently retries a save, and asks the user to refresh before retrying an uncertain outcome. This behavior has a regression test that failed before its message was corrected.
+
+**Observed checks:** Frontend tests passed 15/15, TypeScript passed, ESLint passed without warnings, and a production build succeeded. The real HTTP smoke script passed through Next.js → API → PostgreSQL: both identities signed in; a manager created/assigned a shift; a fresh session read the saved assignment; the employee declared availability/requested coverage; the manager saw the request; logout cleared the session. This is HTTP verification, not visual browser verification. The synthetic records remain locally for inspection.
+
+**Small exercise:** Sign in using `.local/demo-accounts.txt`, choose a week, then reload. React's temporary state disappears, but the saved shift comes back from PostgreSQL. Compare this with `/preview`, whose schedule is a fixed sample. Never commit `.env` or the local accounts file.

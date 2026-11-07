@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "./workspace.css";
 
 export const metadata: Metadata = {
   title: "RUSHCTRL — Your floor, in focus",
   description:
-    "A staffing operations workspace. Milestone 0 foundation with synthetic schedule preview.",
+    "A staffing workspace for schedules, availability and coverage. Local synthetic demo.",
   icons: { icon: "/icon.svg" },
 };
 

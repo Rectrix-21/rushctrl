@@ -29,7 +29,7 @@ public sealed class OperationalEndpointsTests
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var body = await response.Content.ReadFromJsonAsync<JsonElement>();
         Assert.Equal("RUSHCTRL", body.GetProperty("name").GetString());
-        Assert.Equal(0, body.GetProperty("milestone").GetInt32());
+        Assert.Equal(1, body.GetProperty("milestone").GetInt32());
         Assert.Equal(3, body.EnumerateObject().Count());
     }
 

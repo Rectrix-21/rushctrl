@@ -11,6 +11,17 @@ namespace RushCtrl.Api.Tests;
 public sealed class SchedulingWorkflowTests
 {
     [Fact, Trait("Category", "Database")]
+    public async Task EmployeeSuggestedWeekDoesNotRevealOtherPeoplesFutureShifts()
+    {
+        await using var f = await WorkflowFixture.Create();
+        await f.AddSchedulingData();
+        using var manager = await f.Login();
+        using var employee = await f.Login("employee@example.test");
+        await f.CreateShift(manager, "2027-01-11T08:00", "2027-01-11T12:00");
+        var metadata = await employee.GetFromJsonAsync<JsonElement>(f.Route("workspace"));
+        Assert.Equal("2026-11-02", metadata.GetProperty("suggestedWeek").GetString());
+    }
+    [Fact, Trait("Category", "Database")]
     public async Task ManagerCanSaveAndReloadShiftAndEmployeeCannotCreateOne()
     {
         await using var f = await WorkflowFixture.Create();

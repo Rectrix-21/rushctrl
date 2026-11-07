@@ -8,6 +8,16 @@ namespace RushCtrl.Api.Tests;
 public sealed class IdentityWorkflowTests
 {
     [Fact, Trait("Category", "Database")]
+    public async Task FiveFailedAttemptsLockTheAccountWithoutChangingThePublicFailureMessage()
+    {
+        await using var fixture = await WorkflowFixture.Create();
+        using var client = fixture.Factory.CreateClient();
+        await WorkflowFixture.RefreshCsrf(client);
+        for (var attempt = 0; attempt < 5; attempt++)
+            Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostAsJsonAsync("/api/v1/auth/login", new { email = "manager@example.test", password = "Incorrect!Password" })).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostAsJsonAsync("/api/v1/auth/login", new { email = "manager@example.test", password = WorkflowFixture.TestPassword })).StatusCode);
+    }
+    [Fact, Trait("Category", "Database")]
     public async Task LoginSessionAndLogoutUseRealIdentityWithoutLeakingSecrets()
     {
         await using var fixture = await WorkflowFixture.Create();
