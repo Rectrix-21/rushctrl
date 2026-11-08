@@ -1,6 +1,6 @@
 # ADR 0004: workspace transactions, isolated experiments and live invalidation
 
-Status: implemented locally for Milestone 2; browser/container acceptance pending this branch's CI.
+Status: accepted for Milestone 2. API, web/browser and Compose passed in [Checks run 42499631753](https://github.com/Rectrix-21/rushctrl/actions/runs/42499631753) on `dd44c39`.
 
 One endpoint filter owns the organization write transaction. It locks the organization, validates a lab's captured generation when applicable, runs the scheduling operation, numbers and stores minimal audit entries, saves, and commits. Only then does it publish an invalidation. This serializes writes within one organization, simplifying audit order and reset-versus-approval behavior for the local demo. It trades write concurrency for an explicit boundary; no throughput claim is made. Employee locks and the global overlap constraint remain necessary across organizations.
 

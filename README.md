@@ -2,7 +2,7 @@
 
 A staffing operations application for hospitality teams, built with Next.js, ASP.NET Core and PostgreSQL.
 
-**Current stage: Milestone 2 implemented locally; CI acceptance pending.** Coverage approval/rejection/cancellation, explained replacement ranking, transactional activity history, an isolated Friday Rush lab and SignalR updates extend the accepted Milestone 1 workspace. Local API/frontend checks and the real HTTP/hub workflow pass. Desktop/mobile browser and container acceptance require this branch's GitHub checks. All people are synthetic; no operational improvements or production scale are claimed.
+**Current stage: Milestone 2 complete.** Coverage resolution, explained candidate ranking, transactional activity history, an isolated Friday Rush lab and SignalR updates extend the accepted Milestone 1 workspace. [Checks run 42499631753](https://github.com/Rectrix-21/rushctrl/actions/runs/42499631753) passed API, web/browser and Docker Compose on `dd44c39`. Local checks passed 52 API and 25 frontend tests plus types, lint, production build and real HTTP/hub workflows. All people are synthetic; no operational improvements or production scale are claimed.
 
 ## Run locally on Windows
 
@@ -61,7 +61,7 @@ node scripts/smoke-milestone-2.mjs
 
 The first creates a normal synthetic shift and pending request for inspection; repeated runs consume available slots/hours. The second resets only the manager's lab, exercises the full shortage progression and checks a real SignalR invalidation through the web proxy. Both refuse non-loopback URLs.
 
-Playwright desktop/mobile tests are in `apps/web/tests/e2e`. They require the migrated/seeded API to be running. When browser execution is available, install Chromium with `npx playwright install chromium` from `apps/web`, then run `npm run test:e2e` from the root. Tests cover the preview, original staffing flow, employee cancellation, manager approval with automatic refresh in an independent employee session, and lab apply/resolve/standby/reset with another tab's open form. One worker avoids competing resets of the same owner's lab. Credential-flow traces/screenshots/video are disabled. CI starts isolated PostgreSQL/API and masked ephemeral credentials. Local browser automation is not part of this branch's observed verification.
+Playwright desktop/mobile tests are in `apps/web/tests/e2e`. They require the migrated/seeded API to be running. When browser execution is available, install Chromium with `npx playwright install chromium` from `apps/web`, then run `npm run test:e2e` from the root. Tests cover the preview, original staffing flow, employee cancellation, manager approval with automatic refresh in an independent employee session, and lab apply/resolve/standby/reset with another tab's open form. One worker avoids competing resets of the same owner's lab. Credential-flow traces/screenshots/video are disabled. CI starts isolated PostgreSQL/API and masked ephemeral credentials. Browser execution was verified in GitHub CI; no local browser automation is claimed.
 
 Read the [Milestone 2 student walkthrough and self-test guide](docs/learning/milestone-2.md), alongside the [Milestone 1 foundations](docs/learning/milestone-1.md). They explain the increments, code responsibilities and observed checks.
 
@@ -91,7 +91,7 @@ Read the [HTTP contract](docs/api/README.md), [staffing APIs](docs/api/milestone
 
 ## Verification status
 
-- Milestone 2: local API/frontend checks, types, lint, production build and actual HTTP/hub workflow pass. See its journal for counts and limitations. This branch's browser/container CI is pending; earlier green runs do not verify these changes.
+- Milestone 2: [Checks run 42499631753](https://github.com/Rectrix-21/rushctrl/actions/runs/42499631753) passed all three jobs on `dd44c39`, including the eight configured desktop/mobile cases and the original plus Milestone 2 container HTTP/hub workflows. The [journal](docs/learning/milestone-2.md) records local counts, review fixes and limits.
 - Milestone 1 local API tests, frontend tests, typecheck, lint, production build and the actual HTTP manager/employee workflow have passed. Exact evidence and review status are recorded in the [learning journal](docs/learning/milestone-1.md).
 - All three jobs (API, web and Compose) passed on `acf6c19` in [Checks run 42403546329](https://github.com/Rectrix-21/rushctrl/actions/runs/42403546329). This includes the six configured desktop/mobile browser cases, the complete manager/employee staffing workflow, stale-tab write rejection, keyboard/focus checks and mobile overflow assertions. Compose startup, readiness and the container HTTP workflow passed too.
 - Milestone 0's browser and Compose acceptance passed in [Checks run 41718067240](https://github.com/Rectrix-21/rushctrl/actions/runs/41718067240) for `8d48cfa`. That historical result does not verify Milestone 1 changes.

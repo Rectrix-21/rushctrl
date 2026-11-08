@@ -1,6 +1,6 @@
 # Milestone 2 learning journal
 
-Milestone 2 is implemented locally on `milestone-2` from the merged Milestone 1 code. The owner approved the November 8 design. The increments below explain the build; final browser/container acceptance still needs this branch's GitHub run. Earlier check counts describe that increment; the final verification section records the latest result.
+**Milestone 2 is complete.** [Checks run 42499631753](https://github.com/Rectrix-21/rushctrl/actions/runs/42499631753) passed API, web/browser and Docker Compose on `dd44c39`, verified November 8, 2026. Local checks passed 52 API and 25 frontend tests plus types, lint, production build and actual HTTP/hub workflows. The sections below teach each increment; earlier counts describe that point in the build.
 
 ## 1. Resolving requests safely
 
@@ -77,7 +77,7 @@ If nobody is eligible, the explanation is the result. Choose an interval satisfy
 
 Run `./scripts/check.ps1` for API/frontend tests, types, lint and production build. With the app running, `node scripts/smoke-milestone-2.mjs` exercises HTTP and SignalR, resetting only your lab. The older `smoke-workflow.mjs` adds an ordinary synthetic shift/request, so run it deliberately.
 
-Eight desktop/mobile browser cases register locally; discovery is not browser execution. Actual browser/container acceptance remains pending this branch's GitHub Actions run. No local browser automation or Docker engine is being installed to bypass existing limits.
+Eight desktop/mobile browser cases registered locally; discovery itself did not execute them. The actual browser and container acceptance later passed in [Checks run 42499631753](https://github.com/Rectrix-21/rushctrl/actions/runs/42499631753). No local browser automation or Docker engine was installed to bypass existing limits.
 
 A **commit** is a named snapshot. A **branch** keeps this milestone separate from accepted work. VS Code **Publish Branch** uploads it; later **Sync Changes** uploads additional commits. **CI** is GitHub running checks on its own clean machine. Inspect Actions for the exact latest commit before calling the milestone accepted. Merging is a later owner decision.
 
@@ -93,11 +93,15 @@ We used tests in the order “show missing behavior, implement, check again.” 
 | Native HTTP workflows | Original staffing workflow and full Milestone 2 HTTP/SignalR workflow passed through the actual Next proxy |
 | Schema / configuration | EF model matches migration; official checksummed standalone Compose CLI validates configuration; workflow YAML parses |
 | Browser discovery | Eight desktop/mobile cases registered; discovery only |
-| Browser / container runtime | Pending this branch's GitHub run; historical runs do not verify this milestone |
+| Browser / container runtime | Passed all three GitHub jobs on `dd44c39` in run 42499631753, including configured desktop/mobile cases and both container HTTP workflows |
 | Independent review | One fresh whole-branch review; findings addressed in one fix pass, with no second review claimed |
 
-The review found stale lab controls after same-generation changes, a missed reset during reconnect with an open form, historical audit snapshots lacking readable names/times, and three corrupted punctuation literals in the preserved browser test. Added regressions failed first, then passed after the fixes. A delayed-response check also proved that an older metadata response cannot overwrite a newer refresh. The encoding correction passed a character inspection; its actual browser workflow still needs CI. Employees now receive the replacement name only with their own request history, and queued refreshes show a notice inside open forms. No review minors remain deferred.
+The review found stale lab controls after same-generation changes, a missed reset during reconnect with an open form, historical audit snapshots lacking readable names/times, and three corrupted punctuation literals in the preserved browser test. Added regressions failed first, then passed after the fixes. A delayed-response check also proved that an older metadata response cannot overwrite a newer refresh. The encoding correction passed a character inspection; its actual browser workflow later passed CI. Employees now receive the replacement name only with their own request history, and queued refreshes show a notice inside open forms. No review minors remain deferred.
 
 This is why a green test suite is evidence with limits: tests cover the cases written so far. Review found missing cases, so we added them. Browser tests check browser behavior; configuration validation alone cannot prove containers start.
 
-Implementation decisions: native HTTP checks waited for the API/screens to start together (later passed); the callout removes the absent lab member's fixture availability (Reset restores it); the replacement name and queued notice were treated as required user behavior; production scale/durable delivery and full accessibility certification remain outside this milestone. Browser/container CI remains a required acceptance gate. These choices and their limits do not authorize a merge or deployment.
+Implementation decisions: native HTTP checks waited for the API/screens to start together (later passed); the callout removes the absent lab member's fixture availability (Reset restores it); the replacement name and queued notice were treated as required user behavior; production scale/durable delivery and full accessibility certification remain outside this milestone. Browser/container CI was the required acceptance gate and passed on the corrected commit. These choices and their limits do not authorize a merge or deployment.
+
+## Acceptance record
+
+[Checks run 42499631753](https://github.com/Rectrix-21/rushctrl/actions/runs/42499631753) completed successfully for full commit `dd44c397931493f91edc506f1e68c4707ab60bfa`. API, web and Compose all succeeded. The web job ran the actual desktop/mobile workflows; Compose built/started the packaged stack and ran both HTTP workflows, including SignalR through the proxy. No merge, deployment, production-scale claim or full accessibility certification is included. Acceptance notes are a later documentation-only commit; the verified implementation hash remains `dd44c39`.
