@@ -17,6 +17,7 @@ import {
   timeRange,
 } from "@/lib/schedule-view";
 import { ActionDialog, type WorkspaceAction } from "./workspace-dialog";
+import { AuditPanel } from "./audit-panel";
 
 type Props = {
   client: WorkspaceClient;
@@ -25,6 +26,8 @@ type Props = {
   workspace: Workspace;
   week: string;
   onExpired: () => void;
+  revision: number;
+  onEditing: (editing: boolean) => void;
 };
 
 export function ScheduleBoard({
@@ -34,6 +37,8 @@ export function ScheduleBoard({
   workspace,
   week,
   onExpired,
+  revision: externalRevision,
+  onEditing,
 }: Props) {
   const [data, setData] = useState<ScheduleData | null>(null);
   const [error, setError] = useState("");
@@ -50,6 +55,10 @@ export function ScheduleBoard({
   const person = (id: string) =>
     workspace.people.find((p) => p.id === id)?.displayName ?? "Team member";
   useEffect(() => {
+    onEditing(action !== null);
+    return () => onEditing(false);
+  }, [action, onEditing]);
+  useEffect(() => {
     let active = true;
     loadSchedule(client, org, location.id, week, manager)
       .then((result) => {
@@ -64,7 +73,16 @@ export function ScheduleBoard({
     return () => {
       active = false;
     };
-  }, [client, org, location.id, week, manager, revision, onExpired]);
+  }, [
+    client,
+    org,
+    location.id,
+    week,
+    manager,
+    revision,
+    externalRevision,
+    onExpired,
+  ]);
   useEffect(() => {
     if (data && notice) noticeRef.current?.focus();
   }, [data, notice]);
@@ -121,7 +139,9 @@ export function ScheduleBoard({
         </article>
         <article className="glass">
           <span>Coverage requests</span>
-          <strong>{data.requests.length}</strong>
+          <strong>
+            {data.requests.filter((r) => r.status === "Pending").length}
+          </strong>
           <small>Pending requests for this week</small>
         </article>
       </div>
@@ -191,7 +211,7 @@ export function ScheduleBoard({
                     )
                     .map((shift) => {
                       const pending = data.requests.some(
-                        (r) => r.shiftId === shift.id,
+                        (r) => r.shiftId === shift.id && r.status === "Pending",
                       );
                       return (
                         <article
@@ -353,7 +373,7 @@ export function ScheduleBoard({
             <div className="panel-header">
               <div>
                 <h2>Coverage requests</h2>
-                <p>Requests keep the original employee assigned</p>
+                <p>Pending requests and saved resolution history</p>
               </div>
             </div>
             <div className="workspace-list">
@@ -364,7 +384,12 @@ export function ScheduleBoard({
               )}
               {data.requests.map((r) => (
                 <article className="coverage-gap" key={r.id}>
-                  <span className="soft-badge">Pending</span>
+                  <span className="soft-badge">{r.status}</span>
+                  {r.kind === "SimulationCallout" && (
+                    <small>
+                      Friday Rush callout · original employee absent
+                    </small>
+                  )}
                   <strong>{r.requesterName}</strong>
                   <p>
                     {skill(r.skillId)} ·{" "}
@@ -373,14 +398,58 @@ export function ScheduleBoard({
                   <small>
                     {timeRange(r.startsAt, r.endsAt, location.timeZoneId)}
                   </small>
+                  {r.status === "Pending" && (
+                    <div className="workspace-actions">
+                      {manager ? (
+                        <>
+                          <button
+                            className="button primary"
+                            onClick={() =>
+                              setAction({ kind: "approve", request: r })
+                            }
+                          >
+                            Review replacements
+                          </button>
+                          <button
+                            className="button"
+                            onClick={() =>
+                              setAction({ kind: "reject", request: r })
+                            }
+                          >
+                            Reject request
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          className="button"
+                          onClick={() =>
+                            setAction({ kind: "cancel", request: r })
+                          }
+                        >
+                          Cancel request
+                        </button>
+                      )}
+                    </div>
+                  )}
+                  {r.status === "Approved" && r.replacementUserId && (
+                    <p>Replacement: {person(r.replacementUserId)}</p>
+                  )}
                 </article>
               ))}
               <p className="workspace-hint">
-                Request resolution and replacement approval arrive in Milestone
-                2. Pending shifts stay assigned.
+                Standard requests keep the original assignment until a
+                replacement is approved. Resolved requests remain in history.
               </p>
             </div>
           </section>
+          {manager && (
+            <AuditPanel
+              client={client}
+              org={org}
+              revision={revision + externalRevision}
+              onExpired={onExpired}
+            />
+          )}
           {manager && (
             <section className="glass workspace-panel">
               <div className="panel-header">

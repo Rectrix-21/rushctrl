@@ -25,13 +25,14 @@ internal sealed class WorkflowFixture(IsolatedDatabase database, WebApplicationF
     public Guid OtherLocationId { get; } = Guid.NewGuid();
     public Guid OtherSkillId { get; } = Guid.NewGuid();
 
-    public static async Task<WorkflowFixture> Create(bool simulation = false, string environment = "Development")
+    public static async Task<WorkflowFixture> Create(bool simulation = false, string environment = "Development", Action<IServiceCollection>? configure = null)
     {
         var database = await IsolatedDatabase.Create();
         var factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
         {
             builder.UseEnvironment(environment);
             builder.ConfigureServices(services => services.AddSingleton<TimeProvider>(new FixedClock()));
+            if (configure is not null) builder.ConfigureServices(configure);
             builder.ConfigureAppConfiguration((_, config) => config.AddInMemoryCollection(new Dictionary<string, string?>
             { ["ConnectionStrings:Database"] = database.ConnectionString, ["Simulation:Enabled"] = simulation.ToString() }));
         });

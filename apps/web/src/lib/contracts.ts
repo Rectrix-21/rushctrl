@@ -13,7 +13,20 @@ export const sessionSchema = z.object({
     }),
   ),
 });
+export const simulationSchema = z.object({
+  organizationId: id,
+  sourceOrganizationId: id,
+  generation: id,
+  week: z.iso.date(),
+  applied: z.boolean(),
+  pristine: z.boolean(),
+  locationId: id,
+  absenceShiftId: id,
+  standbyShiftId: id,
+});
 export const workspaceSchema = z.object({
+  canOpenSimulation: z.boolean().default(false),
+  simulation: simulationSchema.nullable().default(null),
   organizationName: z.string(),
   permission: z.enum(["Manager", "Employee"]),
   suggestedWeek: z.iso.date(),
@@ -53,7 +66,12 @@ export const requestsSchema = z.array(
     shiftId: id,
     requesterUserId: id,
     requesterName: z.string(),
-    status: z.literal("Pending"),
+    status: z.enum(["Pending", "Approved", "Rejected", "Cancelled"]),
+    kind: z.enum(["Standard", "SimulationCallout"]),
+    version: id,
+    shiftVersion: id,
+    replacementUserId: id.nullable(),
+    resolvedAt: instant.nullable(),
     createdAt: instant,
     startsAt: instant,
     endsAt: instant,
@@ -90,3 +108,38 @@ export type Availability = z.infer<typeof availabilitySchema>[number];
 export type CoverageRequest = z.infer<typeof requestsSchema>[number];
 export type Gap = z.infer<typeof gapsSchema>[number];
 export type Requirement = z.infer<typeof requirementsSchema>[number];
+export const candidatesSchema = z.object({
+  policy: z.literal("least-load-v1"),
+  generatedAt: instant,
+  shiftVersion: id,
+  pendingRequest: z.object({ id, version: id }).nullable(),
+  eligible: z.array(
+    z.object({
+      userId: id,
+      displayName: z.string(),
+      assignedMinutes: z.number(),
+      recentCovers: z.number(),
+      rank: z.number(),
+    }),
+  ),
+  rejected: z.array(
+    z.object({
+      userId: id,
+      displayName: z.string(),
+      reasons: z.array(z.object({ code: z.string(), message: z.string() })),
+    }),
+  ),
+});
+export type Candidates = z.infer<typeof candidatesSchema>;
+export const auditSchema = z.array(
+  z.object({
+    number: z.number(),
+    actorName: z.string(),
+    createdAt: instant,
+    action: z.string(),
+    resourceId: id,
+    generation: id.nullable(),
+    before: z.string().nullable(),
+    after: z.string().nullable(),
+  }),
+);

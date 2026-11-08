@@ -7,6 +7,8 @@ using RushCtrl.Api.Modules.System;
 using RushCtrl.Api.Modules.Identity;
 using RushCtrl.Api.Modules.Scheduling;
 using RushCtrl.Api.Modules.Simulation;
+using RushCtrl.Api.Modules.Realtime;
+using Microsoft.AspNetCore.Http.Connections;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Logging.ClearProviders().AddJsonConsole();
@@ -20,7 +22,8 @@ builder.Services.AddScoped<AssignmentService>();
 builder.Services.AddScoped<EligibilityService>();
 builder.Services.AddScoped<CandidateService>();
 builder.Services.AddScoped<SimulationService>();
-builder.Services.AddSingleton<IWorkspaceNotifier, NullWorkspaceNotifier>();
+builder.Services.AddSignalR();
+builder.Services.AddSingleton<IWorkspaceNotifier, WorkspaceNotifier>();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddIdentityCore<AppUser>(options =>
 {
@@ -84,6 +87,12 @@ app.UseAuthorization();
 app.MapSystemEndpoints();
 app.MapIdentityEndpoints();
 app.MapSchedulingEndpoints();
+app.MapHub<WorkspaceHub>("/hubs/workspace", options =>
+{
+    options.Transports = HttpTransportType.LongPolling;
+    options.LongPolling.PollTimeout = TimeSpan.FromSeconds(15);
+    options.CloseOnAuthenticationExpiration = true;
+});
 if (app.Environment.IsDevelopment()) app.MapOpenApi().AllowAnonymous();
 app.MapFallback("/{**path}", () => Results.Problem(statusCode: 404, title: "Resource not found")).AllowAnonymous();
 app.Run();

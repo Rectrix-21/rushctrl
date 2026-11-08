@@ -35,6 +35,8 @@ test("a form survives Strict Mode effect replay and still dismisses on native cl
     organizationName: "Northline Coffee",
     permission: "Manager",
     suggestedWeek: "2027-01-11",
+    simulation: null,
+    canOpenSimulation: false,
     locations: [location],
     skills: [],
     people: [],

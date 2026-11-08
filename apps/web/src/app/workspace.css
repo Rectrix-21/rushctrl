@@ -628,3 +628,20 @@
     backdrop-filter: none;
   }
 }
+
+.simulation-panel { margin: 0 0 24px; padding: 26px; border-color: rgba(61, 156, 255, .3); background: radial-gradient(ellipse at top right, rgba(29, 121, 245, .17), transparent 65%), rgba(14, 30, 53, .72); }
+.simulation-panel h2 { font-size: 23px; margin: 8px 0; letter-spacing: -.6px; }
+.simulation-panel p { color: var(--muted); font-size: 13px; line-height: 1.7; }
+.simulation-panel .workspace-actions { margin-top: 18px; flex-wrap: wrap; }
+.live-status { color: #93c9ff; font-size: 11px; max-width: 190px; }
+.candidate-explanation { border-top: 1px solid var(--line); padding-top: 12px; font-size: 12px; }
+.candidate-explanation ol { padding-left: 22px; }
+.candidate-explanation li { padding: 8px 0; }
+.candidate-explanation li span { display: block; color: var(--muted); margin-top: 4px; }
+.candidate-explanation details p { line-height: 1.6; }
+.audit-entry { border-bottom: 1px solid var(--line); padding: 14px 0; font-size: 12px; overflow-wrap: anywhere; }
+.audit-entry p, .audit-entry small { color: var(--muted); line-height: 1.7; }
+.audit-entry details { margin-top: 8px; }
+.audit-entry pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 160px; overflow-y: auto; color: var(--muted); font-size: 10px; }
+.workspace-list .workspace-actions { flex-wrap: wrap; margin-top: 12px; }
+@media (max-width: 650px) { .simulation-panel { padding: 20px; } .simulation-panel .button { flex: 1 1 150px; } .live-status { font-size: 10px; } }

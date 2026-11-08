@@ -29,6 +29,8 @@ public sealed class SimulationTests
         var normalBefore = await manager.GetStringAsync(f.Route($"shifts?locationId={f.LocationId}&week=2027-01-11"));
         var lab = await Open(f, manager); var org = lab.GetProperty("organizationId").GetGuid();
         var generation = lab.GetProperty("generation").GetGuid();
+        var session = await manager.GetFromJsonAsync<JsonElement>("/api/v1/auth/session");
+        Assert.Equal(f.OrganizationId, session.GetProperty("memberships")[0].GetProperty("organizationId").GetGuid());
         var query = $"?locationId={lab.GetProperty("locationId").GetGuid()}&week={lab.GetProperty("week").GetString()}";
         Assert.Equal(HttpStatusCode.NotFound, (await employee.GetAsync(Route(org, "simulation"))).StatusCode);
         Assert.Empty((await manager.GetFromJsonAsync<JsonElement>(Route(org, "coverage" + query))).EnumerateArray());

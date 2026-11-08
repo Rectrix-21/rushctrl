@@ -57,7 +57,7 @@ public static class IdentityEndpoints
             var memberships = await (from member in db.Memberships
                                      join org in db.Organizations on member.OrganizationId equals org.Id
                                      where member.UserId == user.Id
-                                     orderby org.Name
+                                     orderby db.SimulationWorkspaces.Any(x => x.OrganizationId == org.Id), org.Name
                                      select new { organizationId = org.Id, organizationName = org.Name, member.Permission }).ToListAsync();
             return Results.Ok(new { user.Id, user.DisplayName, memberships });
         });

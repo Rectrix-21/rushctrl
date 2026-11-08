@@ -56,8 +56,32 @@ export function createWorkspaceClient(fetcher: typeof fetch = fetch) {
       );
     return parsed.data;
   }
+  async function identityToken() {
+    const csrf = await get(
+      "/api/v1/auth/csrf",
+      z.object({ token: z.string().min(1), userId: z.guid().nullable() }),
+    );
+    if (displayedIdentity !== undefined && csrf.userId !== displayedIdentity)
+      throw new ApiError(
+        401,
+        "Your session changed in another tab. Sign in again before saving.",
+      );
+    return csrf;
+  }
   return {
     get,
+    async assertIdentity() {
+      await identityToken();
+    },
+    async refreshSession() {
+      const current = await get("/api/v1/auth/session", sessionSchema);
+      if (current.id !== displayedIdentity)
+        throw new ApiError(
+          401,
+          "Your session changed in another tab. Sign in again before saving.",
+        );
+      return current;
+    },
     async session() {
       const generation = ++sessionGeneration;
       try {
@@ -72,11 +96,22 @@ export function createWorkspaceClient(fetcher: typeof fetch = fetch) {
         throw error;
       }
     },
-    async save(path: string, body?: unknown, method = "POST") {
-      const csrf = await get(
-        "/api/v1/auth/csrf",
-        z.object({ token: z.string().min(1), userId: z.guid().nullable() }),
-      );
+    async save(
+      path: string,
+      body?: unknown,
+      method = "POST",
+      generation?: string | null,
+    ) {
+      const csrf =
+        path === "/api/v1/auth/login"
+          ? await get(
+              "/api/v1/auth/csrf",
+              z.object({
+                token: z.string().min(1),
+                userId: z.guid().nullable(),
+              }),
+            )
+          : await identityToken();
       if (
         path !== "/api/v1/auth/login" &&
         displayedIdentity !== undefined &&
@@ -87,11 +122,12 @@ export function createWorkspaceClient(fetcher: typeof fetch = fetch) {
           "Your session changed in another tab. Sign in again before saving.",
         );
       try {
-        await request(path, {
+        return await request(path, {
           method,
           headers: {
             "Content-Type": "application/json",
             "X-CSRF-TOKEN": csrf.token,
+            ...(generation ? { "X-Workspace-Generation": generation } : {}),
           },
           body: body === undefined ? undefined : JSON.stringify(body),
         });

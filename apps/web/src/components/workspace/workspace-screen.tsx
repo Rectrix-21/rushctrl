@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
   CalendarDays,
@@ -18,6 +18,8 @@ import {
 import { addDays, dayLabel } from "@/lib/schedule-view";
 import { SystemStatus } from "@/components/system-status";
 import { ScheduleBoard } from "./schedule-board";
+import { startWorkspaceUpdates } from "@/lib/realtime";
+import { SimulationPanel } from "./simulation-panel";
 
 type Props = {
   client: WorkspaceClient;
@@ -27,6 +29,7 @@ type Props = {
 };
 
 export function WorkspaceScreen(props: Props) {
+  const [session, setSession] = useState(props.session);
   const [org, setOrg] = useState(
     props.session.memberships[0]?.organizationId ?? "",
   );
@@ -47,7 +50,24 @@ export function WorkspaceScreen(props: Props) {
       </main>
     );
   return (
-    <WorkspaceLoader key={org} {...props} org={org} onOrganization={setOrg} />
+    <WorkspaceLoader
+      key={org}
+      {...props}
+      session={session}
+      org={org}
+      onOrganization={(id) => {
+        void props.client
+          .refreshSession()
+          .then((current) => {
+            setSession(current);
+            setOrg(id);
+          })
+          .catch((error) => {
+            if (error instanceof ApiError && error.status === 401)
+              props.onExpired();
+          });
+      }}
+    />
   );
 }
 
@@ -58,6 +78,7 @@ function WorkspaceLoader(
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [error, setError] = useState("");
   const [revision, setRevision] = useState(0);
+  const [notice, setNotice] = useState("");
   useEffect(() => {
     let active = true;
     client
@@ -96,7 +117,19 @@ function WorkspaceLoader(
         )}
       </main>
     );
-  return <LoadedWorkspace {...props} workspace={workspace} />;
+  return (
+    <LoadedWorkspace
+      {...props}
+      workspace={workspace}
+      notice={notice}
+      onReloadWorkspace={(message = "") => {
+        setNotice(message);
+        setWorkspace(null);
+        setError("");
+        setRevision((n) => n + 1);
+      }}
+    />
+  );
 }
 
 function LoadedWorkspace({
@@ -107,16 +140,77 @@ function LoadedWorkspace({
   onOrganization,
   onSignedOut,
   onExpired,
+  onReloadWorkspace,
+  notice,
 }: Props & {
   workspace: Workspace;
   org: string;
   onOrganization: (id: string) => void;
+  onReloadWorkspace: (message?: string) => void;
+  notice: string;
 }) {
   const [locationId, setLocation] = useState(workspace.locations[0]?.id ?? "");
   const [week, setWeek] = useState(workspace.suggestedWeek);
   const [revision, setRevision] = useState(0);
   const [error, setError] = useState("");
   const [signingOut, setSigningOut] = useState(false);
+  const [liveStatus, setLiveStatus] = useState("Connecting live updates");
+  const [liveAttempt, setLiveAttempt] = useState(0);
+  const updates = useRef<ReturnType<typeof startWorkspaceUpdates> | null>(null);
+  const callbacks = useRef({ onExpired, onReloadWorkspace });
+  useEffect(() => {
+    callbacks.current = { onExpired, onReloadWorkspace };
+  }, [onExpired, onReloadWorkspace]);
+  const refreshAuthoritative = useCallback(async () => {
+    try {
+      await client.assertIdentity();
+      const latest = await client.get(
+        `/api/v1/organizations/${org}/workspace`,
+        workspaceSchema,
+      );
+      if (latest.simulation?.generation !== workspace.simulation?.generation)
+        callbacks.current.onReloadWorkspace(
+          "The lab was reset. Old forms were closed and the new baseline is loaded.",
+        );
+      else setRevision((n) => n + 1);
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 401)
+        callbacks.current.onExpired();
+      else setError(e instanceof Error ? e.message : "Unable to refresh.");
+    }
+  }, [client, org, workspace.simulation]);
+  useEffect(() => {
+    const live = startWorkspaceUpdates({
+      org,
+      generation: workspace.simulation?.generation ?? null,
+      verifyIdentity: () => client.assertIdentity(),
+      onStatus: setLiveStatus,
+      onExpired: () => callbacks.current.onExpired(),
+      onChange: (reset) => {
+        if (reset)
+          callbacks.current.onReloadWorkspace(
+            "The lab was reset. Old forms were closed and the new baseline is loaded.",
+          );
+        else void refreshAuthoritative();
+      },
+    });
+    updates.current = live;
+    return () => {
+      live.stop();
+      updates.current = null;
+    };
+  }, [
+    client,
+    org,
+    session.id,
+    workspace.simulation?.generation,
+    liveAttempt,
+    refreshAuthoritative,
+  ]);
+  const onEditing = useCallback(
+    (editing: boolean) => updates.current?.setEditing(editing),
+    [],
+  );
   const manager = workspace.permission === "Manager";
   const location = workspace.locations.find((x) => x.id === locationId);
   async function signOut() {
@@ -124,6 +218,7 @@ function LoadedWorkspace({
     setError("");
     try {
       await client.save("/api/v1/auth/logout");
+      updates.current?.stop();
       onSignedOut();
     } catch (e) {
       if (e instanceof ApiError && e.status === 401) onSignedOut();
@@ -195,6 +290,9 @@ function LoadedWorkspace({
             </div>
             <div className="top-right">
               <SystemStatus />
+              <span className="live-status" role="status">
+                {liveStatus}
+              </span>
               <button
                 className="button"
                 onClick={signOut}
@@ -223,7 +321,7 @@ function LoadedWorkspace({
             </div>
           </div>
           <div className="workspace-toolbar glass">
-            {session.memberships.length > 1 && (
+            {(session.memberships.length > 1 || workspace.simulation) && (
               <label>
                 Organization
                 <select
@@ -236,6 +334,11 @@ function LoadedWorkspace({
                       {m.organizationName}
                     </option>
                   ))}
+                  {!session.memberships.some(
+                    (m) => m.organizationId === org,
+                  ) && (
+                    <option value={org}>{workspace.organizationName}</option>
+                  )}
                 </select>
               </label>
             )}
@@ -291,12 +394,32 @@ function LoadedWorkspace({
             </span>
             <button
               className="button"
-              onClick={() => setRevision((n) => n + 1)}
+              onClick={() => {
+                void refreshAuthoritative();
+                if (liveStatus.includes("offline"))
+                  setLiveAttempt((n) => n + 1);
+              }}
             >
               <RefreshCw aria-hidden="true" />
               Refresh schedule
             </button>
           </div>
+          {notice && (
+            <p className="save-notice" role="status">
+              {notice}
+            </p>
+          )}
+          {(workspace.canOpenSimulation || workspace.simulation) && (
+            <SimulationPanel
+              client={client}
+              org={org}
+              workspace={workspace}
+              onOrganization={onOrganization}
+              onReload={onReloadWorkspace}
+              onExpired={onExpired}
+              onEditing={onEditing}
+            />
+          )}
           {error && (
             <p className="form-error" role="alert">
               {error}
@@ -304,13 +427,15 @@ function LoadedWorkspace({
           )}
           {location ? (
             <ScheduleBoard
-              key={`${org}/${locationId}/${week}/${revision}`}
+              key={`${org}/${locationId}/${week}`}
               client={client}
               org={org}
               location={location}
               workspace={workspace}
               week={week}
               onExpired={onExpired}
+              revision={revision}
+              onEditing={onEditing}
             />
           ) : (
             <p className="empty-state">
@@ -319,7 +444,7 @@ function LoadedWorkspace({
           )}
           <footer className="workspace-footer">
             Week of {dayLabel(week)} · All schedule times use the location time
-            zone. Refresh to see changes from another session.
+            zone. Live updates reload saved data; Refresh is always available.
           </footer>
         </main>
       </div>
