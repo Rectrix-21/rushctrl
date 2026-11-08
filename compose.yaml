@@ -39,6 +39,7 @@ services:
       dockerfile: src/RushCtrl.Api/Dockerfile
     environment:
       ASPNETCORE_ENVIRONMENT: Development
+      Simulation__Enabled: "true"
       ConnectionStrings__Database: "Host=database;Database=${POSTGRES_DB:?};Username=${POSTGRES_USER:?};Password=${POSTGRES_PASSWORD:?}"
     ports:
       - "127.0.0.1:${API_PORT:-5080}:8080"

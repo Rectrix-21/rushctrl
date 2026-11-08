@@ -16,7 +16,7 @@ internal sealed class WorkflowFixture(IsolatedDatabase database, WebApplicationF
 {
     internal const string TestPassword = "Test-only!Password47";
     public WebApplicationFactory<Program> Factory => factory;
-    public Guid OrganizationId { get; } = Guid.NewGuid();
+    public Guid OrganizationId { get; private set; } = Guid.NewGuid();
     public Guid OtherOrganizationId { get; } = Guid.NewGuid();
     public Guid LocationId { get; } = Guid.NewGuid();
     public Guid ManagerId { get; } = Guid.NewGuid();
@@ -25,17 +25,18 @@ internal sealed class WorkflowFixture(IsolatedDatabase database, WebApplicationF
     public Guid OtherLocationId { get; } = Guid.NewGuid();
     public Guid OtherSkillId { get; } = Guid.NewGuid();
 
-    public static async Task<WorkflowFixture> Create()
+    public static async Task<WorkflowFixture> Create(bool simulation = false, string environment = "Development")
     {
         var database = await IsolatedDatabase.Create();
         var factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
         {
-            builder.UseEnvironment("Development");
+            builder.UseEnvironment(environment);
             builder.ConfigureServices(services => services.AddSingleton<TimeProvider>(new FixedClock()));
             builder.ConfigureAppConfiguration((_, config) => config.AddInMemoryCollection(new Dictionary<string, string?>
-            { ["ConnectionStrings:Database"] = database.ConnectionString }));
+            { ["ConnectionStrings:Database"] = database.ConnectionString, ["Simulation:Enabled"] = simulation.ToString() }));
         });
         var fixture = new WorkflowFixture(database, factory);
+        if (simulation) fixture.OrganizationId = DevelopmentSeed.OrganizationId;
         using var scope = factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<RushCtrlDbContext>();
         await db.Database.MigrateAsync();
@@ -55,7 +56,7 @@ internal sealed class WorkflowFixture(IsolatedDatabase database, WebApplicationF
 
     public async Task<HttpClient> Login(string email = "manager@example.test")
     {
-        var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        var client = factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false, BaseAddress = new Uri("https://localhost") });
         await RefreshCsrf(client);
         var response = await client.PostAsJsonAsync("/api/v1/auth/login", new { email, password = TestPassword });
         Assert.Equal(System.Net.HttpStatusCode.NoContent, response.StatusCode);

@@ -19,6 +19,7 @@ try {
     }
     $rushDll = Join-Path $rushRoot 'src/RushCtrl.Api/bin/Debug/net10.0/RushCtrl.Api.dll'
     $env:Demo__Enabled = 'true'
+    $env:Simulation__Enabled = 'true'
     $env:Demo__ManagerPassword = $rushConfig['DEMO_MANAGER_PASSWORD']
     $env:Demo__EmployeePassword = $rushConfig['DEMO_EMPLOYEE_PASSWORD']
     Write-Output 'Applying migrations and preparing synthetic accounts. Details: .local/migrate.log'
@@ -29,6 +30,7 @@ try {
     }
     $rushApi = Start-Process -FilePath (Join-Path $rushRoot '.tools/dotnet/dotnet.exe') -ArgumentList ('"' + $rushDll + '"') -WorkingDirectory $rushRoot -WindowStyle Hidden -RedirectStandardOutput '.local/api.log' -RedirectStandardError '.local/api-errors.log' -PassThru
     Remove-Item Env:ConnectionStrings__Database -ErrorAction SilentlyContinue
+    Remove-Item Env:Simulation__Enabled -ErrorAction SilentlyContinue
     $rushNext = Join-Path $rushRoot 'node_modules/next/dist/bin/next'
     $rushWebArgs = '"' + $rushNext + '" dev "' + (Join-Path $rushRoot 'apps/web') + '" --hostname 127.0.0.1 --port ' + $rushConfig['WEB_PORT']
     $rushWeb = Start-Process -FilePath (Get-Command node).Source -ArgumentList $rushWebArgs -WorkingDirectory $rushRoot -WindowStyle Hidden -RedirectStandardOutput '.local/web.log' -RedirectStandardError '.local/web-errors.log' -PassThru
@@ -37,7 +39,7 @@ try {
     Write-Output "API: http://localhost:$($rushConfig['API_PORT'])/health/ready"
     Write-Output 'Logs are in .local/. Stop app processes with ./scripts/stop.ps1.'
 } finally {
-    foreach ($rushVariable in @('ConnectionStrings__Database', 'Demo__Enabled', 'Demo__ManagerPassword', 'Demo__EmployeePassword')) {
+    foreach ($rushVariable in @('ConnectionStrings__Database', 'Demo__Enabled', 'Demo__ManagerPassword', 'Demo__EmployeePassword', 'Simulation__Enabled')) {
         Remove-Item "Env:$rushVariable" -ErrorAction SilentlyContinue
     }
     Pop-Location

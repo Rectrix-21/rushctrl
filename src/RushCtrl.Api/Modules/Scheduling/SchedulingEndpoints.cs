@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using RushCtrl.Api.Infrastructure;
 using RushCtrl.Api.Modules.Identity;
+using RushCtrl.Api.Modules.Simulation;
 
 namespace RushCtrl.Api.Modules.Scheduling;
 
@@ -10,7 +11,7 @@ public static class SchedulingEndpoints
     {
         var group = app.MapGroup("/api/v1/organizations/{organizationId:guid}")
             .AddEndpointFilter<ScheduleErrors>().AddEndpointFilter<MembershipFilter>().AddEndpointFilter<CsrfFilter>().AddEndpointFilter<WorkspaceMutationFilter>();
-        group.MapGet("/workspace", async (RushCtrlDbContext db, TenantScope tenant, TimeProvider clock) =>
+        group.MapGet("/workspace", async (RushCtrlDbContext db, TenantScope tenant, TimeProvider clock, SimulationService simulation) =>
         {
             var organization = await db.Organizations.SingleAsync(x => x.Id == tenant.OrganizationId);
             var locations = await db.Locations.OrderBy(x => x.Name).Select(x => new { x.Id, x.Name, x.TimeZoneId }).ToListAsync();
@@ -23,7 +24,8 @@ public static class SchedulingEndpoints
             var zone = TimeZoneInfo.FindSystemTimeZoneById(locations.FirstOrDefault()?.TimeZoneId ?? "UTC");
             var today = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(next ?? clock.GetUtcNow(), zone).DateTime);
             var monday = today.AddDays(-(((int)today.DayOfWeek + 6) % 7));
-            return Results.Ok(new { organizationName = organization.Name, permission = tenant.IsManager ? "Manager" : "Employee", locations, skills, people, qualifications, suggestedWeek = monday.ToString("yyyy-MM-dd") });
+            var lab = await db.SimulationWorkspaces.SingleOrDefaultAsync(x => x.OrganizationId == tenant.OrganizationId && x.OwnerUserId == tenant.UserId);
+            return Results.Ok(new { organizationName = organization.Name, permission = tenant.IsManager ? "Manager" : "Employee", locations, skills, people, qualifications, suggestedWeek = monday.ToString("yyyy-MM-dd"), canOpenSimulation = simulation.CanOpen, simulation = lab is null ? null : SimulationService.View(lab) });
         });
         group.MapGet("/shifts", async (Guid locationId, string week, RushCtrlDbContext db, TenantScope tenant) =>
         {
@@ -50,6 +52,7 @@ public static class SchedulingEndpoints
         group.MapAvailabilityEndpoints();
         group.MapCoverageEndpoints();
         group.MapRequestResolutionEndpoints();
+        group.MapSimulationEndpoints();
         group.MapGet("/shifts/{id:guid}/candidates", async (Guid id, CandidateService service, CancellationToken ct) => Results.Ok(await service.DiscoverAsync(id, ct))).AddEndpointFilter<ManagerFilter>();
     }
 

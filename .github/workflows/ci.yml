@@ -49,6 +49,7 @@ jobs:
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__Database: Host=127.0.0.1;Port=5432;Database=postgres;Username=postgres
       Demo__Enabled: "true"
+      Simulation__Enabled: "true"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

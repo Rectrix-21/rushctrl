@@ -6,6 +6,7 @@ using RushCtrl.Api.Infrastructure;
 using RushCtrl.Api.Modules.System;
 using RushCtrl.Api.Modules.Identity;
 using RushCtrl.Api.Modules.Scheduling;
+using RushCtrl.Api.Modules.Simulation;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Logging.ClearProviders().AddJsonConsole();
@@ -18,6 +19,7 @@ builder.Services.AddScoped<TenantScope>();
 builder.Services.AddScoped<AssignmentService>();
 builder.Services.AddScoped<EligibilityService>();
 builder.Services.AddScoped<CandidateService>();
+builder.Services.AddScoped<SimulationService>();
 builder.Services.AddSingleton<IWorkspaceNotifier, NullWorkspaceNotifier>();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddIdentityCore<AppUser>(options =>

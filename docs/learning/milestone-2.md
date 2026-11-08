@@ -27,3 +27,15 @@ The 28-day history window uses the time an approval was recorded, including both
 **Observed checks:** Candidate tests failed on missing routes, then the full API suite passed 44/44. Tests pin workload ordering, cover counts at both time boundaries, older/future exclusion, ID ties, permissions, self/qualification rejection and an eligible recommendation becoming invalid after a new overlap. Approval correctly refused that stale recommendation.
 
 **Exercise:** Person A has four scheduled hours and no recent covers; B has zero hours and two covers; C has zero hours and no covers. Explain why the proposed order is C, B, A. Then explain why someone with zero hours but incomplete availability is not on that list at all.
+
+## 3. A separate Friday Rush lab
+
+The simulator creates an owner-only organization, two Toronto locations and eight fictional profiles. Those profiles have no password. They never share employee IDs with the ordinary workspace, so their overlapping schedules cannot interfere with it.
+
+The baseline has two assigned people and a target of two. Apply raises the target to three and removes Cameron from the floor, creating a real simulation callout request. The shortage becomes two. Approving a replacement reduces it to one; assigning the standby shift fills the final gap. Reset restores the baseline and keeps the audit history.
+
+A generation token identifies one run of the experiment. Every lab save must carry the token from the form it opened with. Reset changes that token. An old form therefore receives a conflict instead of accidentally saving into the new experiment. The organization transaction lock also makes a reset racing with approval finish in a consistent order.
+
+**Observed checks:** Missing simulator routes failed first. All 49 API tests then passed, including the full 0 ? 2 ? 1 ? 0 workflow, no-password identities, two locations, normal workspace preservation, audit retention, missing/malformed/old generations, edited/expired/repeated Apply, role/environment/source restrictions and concurrent reset/approval. Native HTTP verification will run with the connected screens in the next increment; the currently running app is still the accepted Milestone 1 version.
+
+**Exercise:** Imagine opening an assignment form, resetting in another tab, then pressing Save. Explain why the server must compare the captured generation rather than simply using the newest one. Find that comparison in `WorkspaceMutationFilter.cs`.
