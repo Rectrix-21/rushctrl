@@ -9,7 +9,7 @@ public static class SchedulingEndpoints
     public static void MapSchedulingEndpoints(this WebApplication app)
     {
         var group = app.MapGroup("/api/v1/organizations/{organizationId:guid}")
-            .AddEndpointFilter<ScheduleErrors>().AddEndpointFilter<MembershipFilter>().AddEndpointFilter<CsrfFilter>();
+            .AddEndpointFilter<ScheduleErrors>().AddEndpointFilter<MembershipFilter>().AddEndpointFilter<CsrfFilter>().AddEndpointFilter<WorkspaceMutationFilter>();
         group.MapGet("/workspace", async (RushCtrlDbContext db, TenantScope tenant, TimeProvider clock) =>
         {
             var organization = await db.Organizations.SingleAsync(x => x.Id == tenant.OrganizationId);
@@ -49,6 +49,7 @@ public static class SchedulingEndpoints
         }).AddEndpointFilter<ManagerFilter>();
         group.MapAvailabilityEndpoints();
         group.MapCoverageEndpoints();
+        group.MapRequestResolutionEndpoints();
     }
 
     public static async Task<Organizations.Location> Location(RushCtrlDbContext db, Guid id) =>

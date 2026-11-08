@@ -65,11 +65,39 @@ public static class SchedulingModel
         {
             e.HasKey(x => x.Id);
             e.HasQueryFilter(x => x.OrganizationId == tenant.OrganizationId);
-            e.HasIndex(x => x.ShiftId).IsUnique();
+            e.HasIndex(x => x.ShiftId).IsUnique().HasFilter("\"Status\" = 'Pending'");
             e.Property(x => x.Status).HasMaxLength(20);
+            e.Property(x => x.Kind).HasMaxLength(30);
+            e.Property(x => x.Version).IsConcurrencyToken();
+            e.HasOne<Membership>().WithMany().HasForeignKey(x => new { x.OrganizationId, x.ReplacementUserId }).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne<AppUser>().WithMany().HasForeignKey(x => x.ResolvedByUserId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne<Shift>().WithMany().HasForeignKey(x => new { x.OrganizationId, x.ShiftId }).HasPrincipalKey(x => new { x.OrganizationId, x.Id }).OnDelete(DeleteBehavior.Restrict);
             e.HasOne<Membership>().WithMany().HasForeignKey(x => new { x.OrganizationId, x.RequesterUserId }).OnDelete(DeleteBehavior.Restrict);
-            e.ToTable("CoverageRequests", t => t.HasCheckConstraint("CK_Coverage_Status", "\"Status\" = 'Pending'"));
+            e.ToTable("CoverageRequests", t =>
+            {
+                t.HasCheckConstraint("CK_Coverage_Status", "\"Status\" IN ('Pending','Approved','Rejected','Cancelled')");
+                t.HasCheckConstraint("CK_Coverage_Kind", "\"Kind\" IN ('Standard','SimulationCallout')");
+                t.HasCheckConstraint("CK_Coverage_Resolution", "(\"Status\" = 'Pending' AND \"ResolvedAt\" IS NULL AND \"ResolvedByUserId\" IS NULL AND \"ReplacementUserId\" IS NULL) OR (\"Status\" <> 'Pending' AND \"ResolvedAt\" IS NOT NULL AND \"ResolvedByUserId\" IS NOT NULL AND ((\"Status\" = 'Approved' AND \"ReplacementUserId\" IS NOT NULL) OR (\"Status\" <> 'Approved' AND \"ReplacementUserId\" IS NULL)))");
+            });
+        });
+        model.Entity<AuditEntry>(e =>
+        {
+            e.HasKey(x => new { x.OrganizationId, x.Number });
+            e.Property(x => x.Number).ValueGeneratedNever();
+            e.HasQueryFilter(x => x.OrganizationId == tenant.OrganizationId);
+            e.Property(x => x.Action).HasMaxLength(80);
+            e.HasOne<Organization>().WithMany().HasForeignKey(x => x.OrganizationId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne<AppUser>().WithMany().HasForeignKey(x => x.ActorUserId).OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(x => new { x.OrganizationId, x.Action, x.CreatedAt });
+        });
+        model.Entity<SimulationWorkspace>(e =>
+        {
+            e.HasKey(x => x.OrganizationId);
+            e.HasIndex(x => new { x.SourceOrganizationId, x.OwnerUserId }).IsUnique();
+            e.Property(x => x.Generation).IsConcurrencyToken();
+            e.HasOne<Organization>().WithMany().HasForeignKey(x => x.OrganizationId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne<Organization>().WithMany().HasForeignKey(x => x.SourceOrganizationId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne<AppUser>().WithMany().HasForeignKey(x => x.OwnerUserId).OnDelete(DeleteBehavior.Restrict);
         });
     }
 }

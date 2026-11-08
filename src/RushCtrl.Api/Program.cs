@@ -16,6 +16,8 @@ builder.Services.AddDbContext<RushCtrlDbContext>(options =>
 builder.Services.AddScoped<DatabaseReadinessCheck>();
 builder.Services.AddScoped<TenantScope>();
 builder.Services.AddScoped<AssignmentService>();
+builder.Services.AddScoped<EligibilityService>();
+builder.Services.AddSingleton<IWorkspaceNotifier, NullWorkspaceNotifier>();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddIdentityCore<AppUser>(options =>
 {

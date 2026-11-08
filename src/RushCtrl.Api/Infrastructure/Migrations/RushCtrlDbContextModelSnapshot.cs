@@ -242,6 +242,49 @@ namespace RushCtrl.Api.Infrastructure.Migrations
                         });
                 });
 
+            modelBuilder.Entity("RushCtrl.Api.Modules.Scheduling.AuditEntry", b =>
+                {
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<long>("Number")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)");
+
+                    b.Property<Guid>("ActorUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("After")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Before")
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("Generation")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ResourceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("SubjectUserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("OrganizationId", "Number");
+
+                    b.HasIndex("ActorUserId");
+
+                    b.HasIndex("OrganizationId", "Action", "CreatedAt");
+
+                    b.ToTable("AuditEntries");
+                });
+
             modelBuilder.Entity("RushCtrl.Api.Modules.Scheduling.AvailabilityWindow", b =>
                 {
                     b.Property<Guid>("Id")
@@ -284,10 +327,24 @@ namespace RushCtrl.Api.Infrastructure.Migrations
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
                     b.Property<Guid>("OrganizationId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("ReplacementUserId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid>("RequesterUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("ResolvedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ResolvedByUserId")
                         .HasColumnType("uuid");
 
                     b.Property<Guid>("ShiftId")
@@ -298,10 +355,19 @@ namespace RushCtrl.Api.Infrastructure.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
 
+                    b.Property<Guid>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("uuid");
+
                     b.HasKey("Id");
 
+                    b.HasIndex("ResolvedByUserId");
+
                     b.HasIndex("ShiftId")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("\"Status\" = 'Pending'");
+
+                    b.HasIndex("OrganizationId", "ReplacementUserId");
 
                     b.HasIndex("OrganizationId", "RequesterUserId");
 
@@ -309,7 +375,11 @@ namespace RushCtrl.Api.Infrastructure.Migrations
 
                     b.ToTable("CoverageRequests", null, t =>
                         {
-                            t.HasCheckConstraint("CK_Coverage_Status", "\"Status\" = 'Pending'");
+                            t.HasCheckConstraint("CK_Coverage_Kind", "\"Kind\" IN ('Standard','SimulationCallout')");
+
+                            t.HasCheckConstraint("CK_Coverage_Resolution", "(\"Status\" = 'Pending' AND \"ResolvedAt\" IS NULL AND \"ResolvedByUserId\" IS NULL AND \"ReplacementUserId\" IS NULL) OR (\"Status\" <> 'Pending' AND \"ResolvedAt\" IS NOT NULL AND \"ResolvedByUserId\" IS NOT NULL AND ((\"Status\" = 'Approved' AND \"ReplacementUserId\" IS NOT NULL) OR (\"Status\" <> 'Approved' AND \"ReplacementUserId\" IS NULL)))");
+
+                            t.HasCheckConstraint("CK_Coverage_Status", "\"Status\" IN ('Pending','Approved','Rejected','Cancelled')");
                         });
                 });
 
@@ -373,6 +443,65 @@ namespace RushCtrl.Api.Infrastructure.Migrations
                         {
                             t.HasCheckConstraint("CK_Shift_Range", "\"EndsAt\" > \"StartsAt\"");
                         });
+                });
+
+            modelBuilder.Entity("RushCtrl.Api.Modules.Scheduling.SimulationWorkspace", b =>
+                {
+                    b.Property<Guid>("OrganizationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("AbsenceShiftId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Applied")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("Generation")
+                        .IsConcurrencyToken()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("LeadSkillId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("LocationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("MemberIds")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("OtherLocationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("OwnerUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Pristine")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("SkillId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("SourceOrganizationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("StandbyShiftId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("TargetId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateOnly>("Week")
+                        .HasColumnType("date");
+
+                    b.HasKey("OrganizationId");
+
+                    b.HasIndex("OwnerUserId");
+
+                    b.HasIndex("SourceOrganizationId", "OwnerUserId")
+                        .IsUnique();
+
+                    b.ToTable("SimulationWorkspaces");
                 });
 
             modelBuilder.Entity("RushCtrl.Api.Modules.Scheduling.Skill", b =>
@@ -486,6 +615,21 @@ namespace RushCtrl.Api.Infrastructure.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("RushCtrl.Api.Modules.Scheduling.AuditEntry", b =>
+                {
+                    b.HasOne("RushCtrl.Api.Modules.Identity.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("ActorUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RushCtrl.Api.Modules.Organizations.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("RushCtrl.Api.Modules.Scheduling.AvailabilityWindow", b =>
                 {
                     b.HasOne("RushCtrl.Api.Modules.Organizations.Location", null)
@@ -504,6 +648,16 @@ namespace RushCtrl.Api.Infrastructure.Migrations
 
             modelBuilder.Entity("RushCtrl.Api.Modules.Scheduling.CoverageRequest", b =>
                 {
+                    b.HasOne("RushCtrl.Api.Modules.Identity.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("ResolvedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("RushCtrl.Api.Modules.Identity.Membership", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId", "ReplacementUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("RushCtrl.Api.Modules.Identity.Membership", null)
                         .WithMany()
                         .HasForeignKey("OrganizationId", "RequesterUserId")
@@ -552,6 +706,27 @@ namespace RushCtrl.Api.Infrastructure.Migrations
                         .WithMany()
                         .HasForeignKey("OrganizationId", "SkillId")
                         .HasPrincipalKey("OrganizationId", "Id")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("RushCtrl.Api.Modules.Scheduling.SimulationWorkspace", b =>
+                {
+                    b.HasOne("RushCtrl.Api.Modules.Organizations.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RushCtrl.Api.Modules.Identity.AppUser", null)
+                        .WithMany()
+                        .HasForeignKey("OwnerUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("RushCtrl.Api.Modules.Organizations.Organization", null)
+                        .WithMany()
+                        .HasForeignKey("SourceOrganizationId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });

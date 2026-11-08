@@ -55,4 +55,9 @@ public sealed class CoverageRequest
     public Guid RequesterUserId { get; set; }
     public string Status { get; set; } = "Pending";
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+    public string Kind { get; set; } = "Standard";
+    public Guid Version { get; set; } = Guid.NewGuid();
+    public DateTimeOffset? ResolvedAt { get; set; }
+    public Guid? ResolvedByUserId { get; set; }
+    public Guid? ReplacementUserId { get; set; }
 }

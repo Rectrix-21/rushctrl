@@ -9,6 +9,10 @@ namespace RushCtrl.Api.Infrastructure;
 public sealed class RushCtrlDbContext(DbContextOptions<RushCtrlDbContext> options, TenantScope tenant) : IdentityUserContext<AppUser, Guid>(options)
 {
     public Guid OrganizationId => tenant.OrganizationId;
+    public bool CaptureAudit { get; set; }
+    public List<AuditDraft> AuditChanges { get; } = [];
+    public DbSet<AuditEntry> AuditEntries => Set<AuditEntry>();
+    public DbSet<SimulationWorkspace> SimulationWorkspaces => Set<SimulationWorkspace>();
     public DbSet<Membership> Memberships => Set<Membership>();
     public DbSet<Skill> Skills => Set<Skill>();
     public DbSet<EmployeeSkill> EmployeeSkills => Set<EmployeeSkill>();
@@ -18,6 +22,14 @@ public sealed class RushCtrlDbContext(DbContextOptions<RushCtrlDbContext> option
     public DbSet<CoverageRequest> CoverageRequests => Set<CoverageRequest>();
     public DbSet<Organization> Organizations => Set<Organization>();
     public DbSet<Location> Locations => Set<Location>();
+
+    public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        var changes = CaptureAudit ? ChangeTracker.Entries().Select(AuditCapture.From).OfType<AuditDraft>().ToArray() : [];
+        var result = await base.SaveChangesAsync(cancellationToken);
+        AuditChanges.AddRange(changes);
+        return result;
+    }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

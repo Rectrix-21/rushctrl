@@ -50,20 +50,19 @@ public static class CoverageEndpoints
                                      join user in db.Users on request.RequesterUserId equals user.Id
                                      where shift.LocationId == locationId && shift.StartsAt < bounds.End && bounds.Start < shift.EndsAt && (tenant.IsManager || request.RequesterUserId == tenant.UserId)
                                      orderby request.CreatedAt descending
-                                     select new { request.Id, request.ShiftId, request.RequesterUserId, requesterName = user.DisplayName, request.Status, request.CreatedAt, shift.StartsAt, shift.EndsAt, shift.SkillId }).ToListAsync());
+                                     select new { request.Id, request.ShiftId, request.RequesterUserId, requesterName = user.DisplayName, request.Status, request.Kind, request.Version, request.ReplacementUserId, request.ResolvedAt, request.CreatedAt, shift.StartsAt, shift.EndsAt, shift.SkillId, shiftVersion = shift.Version }).ToListAsync());
         });
         group.MapPost("/coverage-requests", async (RequestInput input, RushCtrlDbContext db, TenantScope tenant, TimeProvider clock) =>
         {
-            await using var transaction = await db.Database.BeginTransactionAsync();
             var shift = await db.Shifts.FromSqlInterpolated($"SELECT * FROM \"Shifts\" WHERE \"Id\" = {input.ShiftId} AND \"OrganizationId\" = {tenant.OrganizationId} FOR UPDATE").SingleOrDefaultAsync();
             if (shift is null || shift.AssigneeUserId != tenant.UserId) throw new ScheduleRuleException("Assigned shift not found.", 404);
             if (shift.StartsAt <= clock.GetUtcNow()) throw new ScheduleRuleException("Coverage can only be requested before a shift starts.", 409);
-            if (await db.CoverageRequests.AnyAsync(x => x.ShiftId == shift.Id)) throw new ScheduleRuleException("This shift already has a pending request.", 409);
+            if (await db.CoverageRequests.AnyAsync(x => x.ShiftId == shift.Id && x.Status == "Pending")) throw new ScheduleRuleException("This shift already has a pending request.", 409);
             var request = new CoverageRequest { OrganizationId = tenant.OrganizationId, ShiftId = shift.Id, RequesterUserId = tenant.UserId, CreatedAt = clock.GetUtcNow() };
             db.CoverageRequests.Add(request);
+            shift.Version = Guid.NewGuid();
             await db.SaveChangesAsync();
-            await transaction.CommitAsync();
-            return Results.Created($"/api/v1/organizations/{tenant.OrganizationId}/coverage-requests/{request.Id}", new { request.Id, request.ShiftId, request.RequesterUserId, request.Status, request.CreatedAt });
+            return Results.Created($"/api/v1/organizations/{tenant.OrganizationId}/coverage-requests/{request.Id}", new { request.Id, request.ShiftId, request.RequesterUserId, request.Status, request.Kind, request.Version, request.CreatedAt });
         });
     }
     public sealed record RequirementInput(Guid LocationId, Guid SkillId, string? StartsAt, string? EndsAt, int RequiredCount);
