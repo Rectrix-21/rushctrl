@@ -50,7 +50,7 @@ public static class CoverageEndpoints
                                      join user in db.Users on request.RequesterUserId equals user.Id
                                      where shift.LocationId == locationId && shift.StartsAt < bounds.End && bounds.Start < shift.EndsAt && (tenant.IsManager || request.RequesterUserId == tenant.UserId)
                                      orderby request.CreatedAt descending
-                                     select new { request.Id, request.ShiftId, request.RequesterUserId, requesterName = user.DisplayName, request.Status, request.Kind, request.Version, request.ReplacementUserId, request.ResolvedAt, request.CreatedAt, shift.StartsAt, shift.EndsAt, shift.SkillId, shiftVersion = shift.Version }).ToListAsync());
+                                     select new { request.Id, request.ShiftId, request.RequesterUserId, requesterName = user.DisplayName, request.Status, request.Kind, request.Version, request.ReplacementUserId, replacementName = db.Users.Where(x => x.Id == request.ReplacementUserId).Select(x => x.DisplayName).FirstOrDefault(), request.ResolvedAt, request.CreatedAt, shift.StartsAt, shift.EndsAt, shift.SkillId, shiftVersion = shift.Version }).ToListAsync());
         });
         group.MapPost("/coverage-requests", async (RequestInput input, RushCtrlDbContext db, TenantScope tenant, TimeProvider clock) =>
         {

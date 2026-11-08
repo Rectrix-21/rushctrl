@@ -51,6 +51,7 @@ export function ActionDialog({
   onClose,
   onSaved,
   onExpired,
+  updatesQueued = false,
 }: {
   action: WorkspaceAction;
   client: WorkspaceClient;
@@ -61,6 +62,7 @@ export function ActionDialog({
   onClose: () => void;
   onSaved: (message: string) => void;
   onExpired: () => void;
+  updatesQueued?: boolean;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [error, setError] = useState("");
@@ -209,6 +211,12 @@ export function ActionDialog({
         </button>
       </div>
       <form className="workspace-form" onSubmit={submit}>
+        {updatesQueued && (
+          <p role="status" className="request-warning">
+            Schedule changed while you were editing. Close this form to refresh.
+            Saving rechecks the current rules and versions.
+          </p>
+        )}
         {interval && (
           <>
             <p className="muted">

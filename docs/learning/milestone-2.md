@@ -1,6 +1,6 @@
 # Milestone 2 learning journal
 
-Milestone 2 is being built on `milestone-2` from the merged Milestone 1 code. The owner approved the November 8 design. This document records completed increments; the whole milestone is not yet accepted.
+Milestone 2 is implemented locally on `milestone-2` from the merged Milestone 1 code. The owner approved the November 8 design. The increments below explain the build; final browser/container acceptance still needs this branch's GitHub run. Earlier check counts describe that increment; the final verification section records the latest result.
 
 ## 1. Resolving requests safely
 
@@ -82,3 +82,22 @@ Eight desktop/mobile browser cases register locally; discovery is not browser ex
 A **commit** is a named snapshot. A **branch** keeps this milestone separate from accepted work. VS Code **Publish Branch** uploads it; later **Sync Changes** uploads additional commits. **CI** is GitHub running checks on its own clean machine. Inspect Actions for the exact latest commit before calling the milestone accepted. Merging is a later owner decision.
 
 We used tests in the order “show missing behavior, implement, check again.” That is test-driven development. Independent review adds another reading of the whole change; neither replaces exercising the application.
+
+## Final local verification and review
+
+| Check | Observed result |
+| --- | --- |
+| API / PostgreSQL integration | 52 passed, including migration preservation, roles, concurrent resolution/reset and readable approval snapshots after reset |
+| Frontend unit/component behavior | 25 passed, including real React dialog/screen rendering, stale metadata ordering, reconnect with an open form, queued notices and identity checks |
+| Types / lint / production build | Passed |
+| Native HTTP workflows | Original staffing workflow and full Milestone 2 HTTP/SignalR workflow passed through the actual Next proxy |
+| Schema / configuration | EF model matches migration; official checksummed standalone Compose CLI validates configuration; workflow YAML parses |
+| Browser discovery | Eight desktop/mobile cases registered; discovery only |
+| Browser / container runtime | Pending this branch's GitHub run; historical runs do not verify this milestone |
+| Independent review | One fresh whole-branch review; findings addressed in one fix pass, with no second review claimed |
+
+The review found stale lab controls after same-generation changes, a missed reset during reconnect with an open form, historical audit snapshots lacking readable names/times, and three corrupted punctuation literals in the preserved browser test. Added regressions failed first, then passed after the fixes. A delayed-response check also proved that an older metadata response cannot overwrite a newer refresh. The encoding correction passed a character inspection; its actual browser workflow still needs CI. Employees now receive the replacement name only with their own request history, and queued refreshes show a notice inside open forms. No review minors remain deferred.
+
+This is why a green test suite is evidence with limits: tests cover the cases written so far. Review found missing cases, so we added them. Browser tests check browser behavior; configuration validation alone cannot prove containers start.
+
+Implementation decisions: native HTTP checks waited for the API/screens to start together (later passed); the callout removes the absent lab member's fixture availability (Reset restores it); the replacement name and queued notice were treated as required user behavior; production scale/durable delivery and full accessibility certification remain outside this milestone. Browser/container CI remains a required acceptance gate. These choices and their limits do not authorize a merge or deployment.

@@ -131,7 +131,16 @@ try {
     (error) => error instanceof ApiError && error.status === 409,
   );
   const audit = await client.get(base + "audit", auditSchema);
-  assert.ok(audit.some((entry) => entry.action === "CoverageRequest.Approved"));
+  const approval = audit.find(
+    (entry) =>
+      entry.action === "CoverageRequest.Approved" && entry.generation === old,
+  );
+  assert.ok(approval?.after);
+  const snapshot = JSON.parse(approval.after);
+  assert.equal(snapshot.requester.name, "Cameron (lab)");
+  assert.equal(snapshot.replacement.name, "Avery (lab)");
+  assert.equal(snapshot.shift.location.timeZoneId, "America/Toronto");
+  assert.equal(snapshot.shift.startsAt, request.startsAt);
   assert.ok(audit.some((entry) => entry.action === "Simulation.Reset"));
   assert.ok(workspace.simulation);
 } finally {

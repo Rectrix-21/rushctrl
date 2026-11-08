@@ -53,6 +53,7 @@ test("a form survives Strict Mode effect replay and still dismisses on native cl
         location={location}
         workspace={workspace}
         day="2027-01-11"
+        updatesQueued={true}
         onClose={() => {
           dismissals++;
           setOpen(false);
@@ -83,6 +84,7 @@ test("a form survives Strict Mode effect replay and still dismisses on native cl
       "The create-shift form should remain open after effect replay",
     );
     assert.equal(dismissals, 0);
+    assert.match(dialog.textContent!, /Schedule changed while you were editing/);
     await act(async () => {
       const cancelled = !dialog.dispatchEvent(
         new dom.window.Event("cancel", { cancelable: true }),

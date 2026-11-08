@@ -118,6 +118,11 @@ test("coverage resolution refreshes another session and the lab resets open form
         .filter({ hasText: "Approved" }),
     ).toHaveCount(1);
     await expect(own).toHaveCount(0);
+    await expect(
+      employee
+        .locator(`#requests [data-request-shift-id="${id}"]`)
+        .filter({ hasText: "Approved" }),
+    ).toContainText("Alex Kim");
 
     await page
       .getByRole("button", { name: "Open Friday Rush lab", exact: true })

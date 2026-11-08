@@ -71,6 +71,7 @@ export const requestsSchema = z.array(
     version: id,
     shiftVersion: id,
     replacementUserId: id.nullable(),
+    replacementName: z.string().nullable(),
     resolvedAt: instant.nullable(),
     createdAt: instant,
     startsAt: instant,

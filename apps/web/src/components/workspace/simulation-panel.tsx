@@ -12,6 +12,7 @@ export function SimulationPanel({
   onReload,
   onExpired,
   onEditing,
+  updatesQueued = false,
 }: {
   client: WorkspaceClient;
   org: string;
@@ -20,6 +21,7 @@ export function SimulationPanel({
   onReload: () => void;
   onExpired: () => void;
   onEditing: (value: boolean) => void;
+  updatesQueued?: boolean;
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -131,6 +133,12 @@ export function SimulationPanel({
           }}
         >
           <h2 id="reset-title">Reset this lab?</h2>
+          {updatesQueued && (
+            <p role="status">
+              Schedule changed while you were editing. Close this form to review
+              the latest data before resetting.
+            </p>
+          )}
           <p>
             This replaces this lab’s shifts, availability, targets and requests
             with the baseline. Activity history stays. Open forms from this

@@ -73,6 +73,7 @@ public sealed class RequestResolutionTests
         Assert.Equal(f.ManagerId, shifts[0].GetProperty("assigneeUserId").GetGuid());
         var history = await employee.GetFromJsonAsync<JsonElement>(f.Route($"coverage-requests?locationId={f.LocationId}&week=2027-01-11"));
         Assert.Equal("Approved", history[0].GetProperty("status").GetString());
+        Assert.Equal("Test Manager", history[0].GetProperty("replacementName").GetString());
         var audit = await manager.GetFromJsonAsync<JsonElement>(f.Route("audit"));
         Assert.Single(audit.EnumerateArray(), x => x.GetProperty("action").GetString() == "CoverageRequest.Approved");
     }

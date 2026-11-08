@@ -30,17 +30,44 @@ class Connection {
 }
 const tick = () => new Promise((resolve) => setTimeout(resolve, 120));
 
+test("rejoining discovers a missed reset even while an old form is open", async () => {
+  const connection = new Connection();
+  let current = generation;
+  const changes: boolean[] = [];
+  const updates = startWorkspaceUpdates({
+    org,
+    generation,
+    connection,
+    verifyIdentity: async () => {},
+    readGeneration: async () => current,
+    onChange: (reset) => changes.push(reset),
+    onStatus: () => {},
+    onExpired: () => assert.fail("Unexpected expiry"),
+  });
+  await tick();
+  changes.length = 0;
+  updates.setEditing(true);
+  current = changedGeneration;
+  await connection.reconnect();
+  await tick();
+  assert.deepEqual(changes, [true]);
+  updates.stop();
+});
+
 test("live updates coalesce, wait for edits and invalidate forms on reset", async () => {
   const connection = new Connection();
   const changes: boolean[] = [];
   const statuses: string[] = [];
+  const queued: boolean[] = [];
   const updates = startWorkspaceUpdates({
     org,
     generation,
     verifyIdentity: async () => {},
+    readGeneration: async () => generation,
     connection,
     onChange: (reset) => changes.push(reset),
     onStatus: (s) => statuses.push(s),
+    onQueued: (value) => queued.push(value),
     onExpired: () => assert.fail("Unexpected expiry"),
   });
   await tick();
@@ -52,9 +79,11 @@ test("live updates coalesce, wait for edits and invalidate forms on reset", asyn
   connection.changed({ organizationId: org, generation });
   await tick();
   assert.deepEqual(changes, []);
+  assert.equal(queued.at(-1), true);
   updates.setEditing(false);
   await tick();
   assert.deepEqual(changes, [false]);
+  assert.equal(queued.at(-1), false);
   updates.setEditing(true);
   connection.changed({ organizationId: org, generation: changedGeneration });
   await tick();
@@ -77,6 +106,7 @@ test("a cookie identity switch prevents reconnect joining and expires the render
     verifyIdentity: async () => {
       if (switched) throw new ApiError(401, "Session changed");
     },
+    readGeneration: async () => null,
     onChange: () => {},
     onStatus: () => {},
     onExpired: () => expired++,

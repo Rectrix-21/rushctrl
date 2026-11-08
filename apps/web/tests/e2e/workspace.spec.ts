@@ -50,7 +50,7 @@ test("manager and employee complete a saved staffing workflow", async ({
     })
     .locator("[data-shift-id]")
     .filter({
-      has: page.getByText(`${hour}:00â€“${hour + 2}:00`, { exact: true }),
+      has: page.getByText(`${hour}:00–${hour + 2}:00`, { exact: true }),
     });
   await expect(createdCard).toHaveCount(1);
   await expect(createdCard).toContainText("Barista");
@@ -111,7 +111,7 @@ test("manager and employee complete a saved staffing workflow", async ({
   await dialog
     .getByRole("button", { name: "Submit coverage request", exact: true })
     .click();
-  await expect(row).toContainText("Coverage requested Â· Pending");
+  await expect(row).toContainText("Coverage requested · Pending");
   await addAvailability.click();
   const otherTab = await context.newPage();
   await otherTab.goto("/");
@@ -141,7 +141,7 @@ test("manager and employee complete a saved staffing workflow", async ({
   page.off("request", observe);
   await otherTab.close();
   await signIn(page, "manager@northline.example", credentials.manager);
-  await expect(row).toContainText("Coverage requested Â· Pending");
+  await expect(row).toContainText("Coverage requested · Pending");
   await expect(page.locator("#requests")).toContainText("Morgan Park");
   await expect(
     row.getByRole("button", { name: "Request pending", exact: true }),

@@ -25,7 +25,10 @@ public sealed class RushCtrlDbContext(DbContextOptions<RushCtrlDbContext> option
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
-        var changes = CaptureAudit ? ChangeTracker.Entries().Select(AuditCapture.From).OfType<AuditDraft>().ToArray() : [];
+        List<AuditDraft> changes = [];
+        if (CaptureAudit)
+            foreach (var entry in ChangeTracker.Entries().ToArray())
+                if (await AuditCapture.FromAsync(this, entry, cancellationToken) is { } change) changes.Add(change);
         var result = await base.SaveChangesAsync(cancellationToken);
         AuditChanges.AddRange(changes);
         return result;

@@ -23,8 +23,10 @@ export function startWorkspaceUpdates(options: {
   org: string;
   generation: string | null;
   verifyIdentity: () => Promise<void>;
+  readGeneration: () => Promise<string | null>;
   onChange: (reset: boolean) => void;
   onStatus: (status: string) => void;
+  onQueued?: (queued: boolean) => void;
   onExpired: () => void;
   connection?: Connection;
 }) {
@@ -55,7 +57,12 @@ export function startWorkspaceUpdates(options: {
   function flush() {
     clearTimeout(timer);
     timer = setTimeout(() => {
-      if (stopped || !pending || (editing && !resetPending)) return;
+      if (stopped || !pending) return;
+      if (editing && !resetPending) {
+        options.onQueued?.(true);
+        return;
+      }
+      options.onQueued?.(false);
       const reset = resetPending;
       pending = false;
       resetPending = false;
@@ -67,10 +74,12 @@ export function startWorkspaceUpdates(options: {
       await options.verifyIdentity();
       if (stopped) return;
       await connection.invoke("JoinWorkspace", options.org);
+      const generation = await options.readGeneration();
       await options.verifyIdentity();
       if (stopped) return;
       options.onStatus("Live updates connected");
       pending = true;
+      resetPending ||= generation !== options.generation;
       flush();
     } catch (error) {
       await failure(error);

@@ -26,6 +26,7 @@ type Props = {
   session: Session;
   onSignedOut: () => void;
   onExpired: () => void;
+  updatesFactory?: typeof startWorkspaceUpdates;
 };
 
 export function WorkspaceScreen(props: Props) {
@@ -121,6 +122,7 @@ function WorkspaceLoader(
     <LoadedWorkspace
       {...props}
       workspace={workspace}
+      onWorkspaceUpdate={setWorkspace}
       notice={notice}
       onReloadWorkspace={(message = "") => {
         setNotice(message);
@@ -142,12 +144,15 @@ function LoadedWorkspace({
   onExpired,
   onReloadWorkspace,
   notice,
+  updatesFactory = startWorkspaceUpdates,
+  onWorkspaceUpdate,
 }: Props & {
   workspace: Workspace;
   org: string;
   onOrganization: (id: string) => void;
   onReloadWorkspace: (message?: string) => void;
   notice: string;
+  onWorkspaceUpdate: (workspace: Workspace) => void;
 }) {
   const [locationId, setLocation] = useState(workspace.locations[0]?.id ?? "");
   const [week, setWeek] = useState(workspace.suggestedWeek);
@@ -156,35 +161,53 @@ function LoadedWorkspace({
   const [signingOut, setSigningOut] = useState(false);
   const [liveStatus, setLiveStatus] = useState("Connecting live updates");
   const [liveAttempt, setLiveAttempt] = useState(0);
+  const [updatesQueued, setUpdatesQueued] = useState(false);
   const updates = useRef<ReturnType<typeof startWorkspaceUpdates> | null>(null);
-  const callbacks = useRef({ onExpired, onReloadWorkspace });
+  const generation = workspace.simulation?.generation ?? null;
+  const metadataLoad = useRef(0);
+  const invalidateMetadataLoads = useCallback(() => { metadataLoad.current++; }, []);
+  const callbacks = useRef({ onExpired, onReloadWorkspace, onWorkspaceUpdate });
   useEffect(() => {
-    callbacks.current = { onExpired, onReloadWorkspace };
-  }, [onExpired, onReloadWorkspace]);
+    callbacks.current = { onExpired, onReloadWorkspace, onWorkspaceUpdate };
+  }, [onExpired, onReloadWorkspace, onWorkspaceUpdate]);
   const refreshAuthoritative = useCallback(async () => {
+    const load = ++metadataLoad.current;
     try {
       await client.assertIdentity();
       const latest = await client.get(
         `/api/v1/organizations/${org}/workspace`,
         workspaceSchema,
       );
-      if (latest.simulation?.generation !== workspace.simulation?.generation)
+      if (load !== metadataLoad.current) return;
+      if ((latest.simulation?.generation ?? null) !== generation)
         callbacks.current.onReloadWorkspace(
           "The lab was reset. Old forms were closed and the new baseline is loaded.",
         );
-      else setRevision((n) => n + 1);
+      else {
+        callbacks.current.onWorkspaceUpdate(latest);
+        setRevision((n) => n + 1);
+      }
     } catch (e) {
+      if (load !== metadataLoad.current) return;
       if (e instanceof ApiError && e.status === 401)
         callbacks.current.onExpired();
       else setError(e instanceof Error ? e.message : "Unable to refresh.");
     }
-  }, [client, org, workspace.simulation]);
+  }, [client, org, generation]);
   useEffect(() => {
-    const live = startWorkspaceUpdates({
+    const live = updatesFactory({
       org,
-      generation: workspace.simulation?.generation ?? null,
+      generation,
       verifyIdentity: () => client.assertIdentity(),
+      readGeneration: async () =>
+        (
+          await client.get(
+            `/api/v1/organizations/${org}/workspace`,
+            workspaceSchema,
+          )
+        ).simulation?.generation ?? null,
       onStatus: setLiveStatus,
+      onQueued: setUpdatesQueued,
       onExpired: () => callbacks.current.onExpired(),
       onChange: (reset) => {
         if (reset)
@@ -196,6 +219,7 @@ function LoadedWorkspace({
     });
     updates.current = live;
     return () => {
+      invalidateMetadataLoads();
       live.stop();
       updates.current = null;
     };
@@ -203,9 +227,11 @@ function LoadedWorkspace({
     client,
     org,
     session.id,
-    workspace.simulation?.generation,
+    generation,
     liveAttempt,
     refreshAuthoritative,
+    updatesFactory,
+    invalidateMetadataLoads,
   ]);
   const onEditing = useCallback(
     (editing: boolean) => updates.current?.setEditing(editing),
@@ -418,6 +444,7 @@ function LoadedWorkspace({
               onReload={onReloadWorkspace}
               onExpired={onExpired}
               onEditing={onEditing}
+              updatesQueued={updatesQueued}
             />
           )}
           {error && (
@@ -435,6 +462,7 @@ function LoadedWorkspace({
               week={week}
               onExpired={onExpired}
               revision={revision}
+              updatesQueued={updatesQueued}
               onEditing={onEditing}
             />
           ) : (

@@ -28,6 +28,7 @@ type Props = {
   onExpired: () => void;
   revision: number;
   onEditing: (editing: boolean) => void;
+  updatesQueued: boolean;
 };
 
 export function ScheduleBoard({
@@ -39,6 +40,7 @@ export function ScheduleBoard({
   onExpired,
   revision: externalRevision,
   onEditing,
+  updatesQueued,
 }: Props) {
   const [data, setData] = useState<ScheduleData | null>(null);
   const [error, setError] = useState("");
@@ -436,7 +438,10 @@ export function ScheduleBoard({
                     </div>
                   )}
                   {r.status === "Approved" && r.replacementUserId && (
-                    <p>Replacement: {person(r.replacementUserId)}</p>
+                    <p>
+                      Replacement:{" "}
+                      {r.replacementName ?? person(r.replacementUserId)}
+                    </p>
                   )}
                 </article>
               ))}
@@ -485,6 +490,7 @@ export function ScheduleBoard({
       {action && (
         <ActionDialog
           action={action}
+          updatesQueued={updatesQueued}
           client={client}
           org={org}
           location={location}

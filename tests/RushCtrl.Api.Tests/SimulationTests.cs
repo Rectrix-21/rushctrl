@@ -60,6 +60,9 @@ public sealed class SimulationTests
         var audit = await manager.GetFromJsonAsync<JsonElement>(Route(org, "audit"));
         Assert.Contains(audit.EnumerateArray(), x => x.GetProperty("action").GetString() == "CoverageRequest.Approved");
         Assert.Contains(audit.EnumerateArray(), x => x.GetProperty("action").GetString() == "Simulation.Reset");
+        var approval = Assert.Single(audit.EnumerateArray(), x => x.GetProperty("action").GetString() == "CoverageRequest.Approved");
+        var snapshot = approval.GetProperty("after").GetString()!;
+        foreach (var context in new[] { "Cameron (lab)", "Avery (lab)", "Barista", "Harbour Lab", "America/Toronto", request.GetProperty("startsAt").GetDateTimeOffset().ToString("yyyy-MM-dd") }) Assert.Contains(context, snapshot);
         Assert.Equal(normalBefore, await manager.GetStringAsync(f.Route($"shifts?locationId={f.LocationId}&week=2027-01-11")));
         using var scope = f.Factory.Services.CreateScope(); var db = scope.ServiceProvider.GetRequiredService<RushCtrlDbContext>();
         var generated = await (from member in db.Memberships join user in db.Users on member.UserId equals user.Id where member.OrganizationId == org && user.Id != f.ManagerId select user).ToListAsync();
