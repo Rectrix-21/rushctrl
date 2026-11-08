@@ -50,6 +50,7 @@ public static class SchedulingEndpoints
         group.MapAvailabilityEndpoints();
         group.MapCoverageEndpoints();
         group.MapRequestResolutionEndpoints();
+        group.MapGet("/shifts/{id:guid}/candidates", async (Guid id, CandidateService service, CancellationToken ct) => Results.Ok(await service.DiscoverAsync(id, ct))).AddEndpointFilter<ManagerFilter>();
     }
 
     public static async Task<Organizations.Location> Location(RushCtrlDbContext db, Guid id) =>

@@ -17,6 +17,7 @@ builder.Services.AddScoped<DatabaseReadinessCheck>();
 builder.Services.AddScoped<TenantScope>();
 builder.Services.AddScoped<AssignmentService>();
 builder.Services.AddScoped<EligibilityService>();
+builder.Services.AddScoped<CandidateService>();
 builder.Services.AddSingleton<IWorkspaceNotifier, NullWorkspaceNotifier>();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddIdentityCore<AppUser>(options =>
