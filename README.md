@@ -2,7 +2,7 @@
 
 A staffing operations application for hospitality teams, built with Next.js, ASP.NET Core and PostgreSQL.
 
-**Current stage: Milestone 1 complete.** Identity sign-in, organization permissions, saved shifts/assignments, dated availability, pending coverage requests and staffing gaps are implemented. The blue glass manager/employee screens use PostgreSQL-backed APIs. API tests, frontend checks, the desktop/mobile browser workflow and Docker startup/HTTP workflow passed in [Checks run 42403546329](https://github.com/Rectrix-21/rushctrl/actions/runs/42403546329) for `acf6c19`. All people are synthetic. No real users, operational improvements or production scale are claimed.
+**Current stage: Milestone 2 implemented locally; CI acceptance pending.** Coverage approval/rejection/cancellation, explained replacement ranking, transactional activity history, an isolated Friday Rush lab and SignalR updates extend the accepted Milestone 1 workspace. Local API/frontend checks and the real HTTP/hub workflow pass. Desktop/mobile browser and container acceptance require this branch's GitHub checks. All people are synthetic; no operational improvements or production scale are claimed.
 
 ## Run locally on Windows
 
@@ -19,9 +19,11 @@ Open [RUSHCTRL](http://localhost:3000). Open the ignored `.local/demo-accounts.t
 
 Startup applies migrations and explicitly seeds Development with Northline Coffee / Harbour / America/Toronto, qualifications, availability, future shifts and a staffing target. Later launches preserve saved shifts. The [original Milestone 0 preview](http://localhost:3000/preview) remains a fixed November 6 sample. The main workspace saves changes locally.
 
-Managers create shifts, assign employees and set staffing targets. Assignment rejects missing qualifications, incomplete availability, overlaps, excessive configured weekly hours and stale versions. Employees see their own shifts, declare availability and request coverage. A pending request keeps the original employee assigned and blocks reassignment. Cancellation/resolution and replacement approval arrive in Milestone 2; the UI explains this before submission. Availability is additive and immediate. Recurring availability, time-off administration and editing/deletion screens are deferred.
+Managers create shifts, assign employees, set staffing targets and approve/reject coverage requests. Candidate lists explain eligibility and rank eligible people by scheduled load and recent covers; saving rechecks the rules. Employees see their own shifts, declare availability, request coverage and cancel their own pending requests. Standard pending requests retain the original assignment until approval. Resolved requests remain in history. Availability is additive and immediate; recurring availability and editing/deletion screens remain deferred.
 
-The API exposes [metadata](http://localhost:5080/api/v1/system), [readiness](http://localhost:5080/health/ready) and [Development OpenAPI](http://localhost:5080/openapi/v1.json). Connection status polls every 30 seconds. The schedule reloads after saves or with Refresh schedule; live notifications are not implemented yet.
+The API exposes [metadata](http://localhost:5080/api/v1/system), [readiness](http://localhost:5080/health/ready) and [Development OpenAPI](http://localhost:5080/openapi/v1.json). API/database readiness polls every 30 seconds. A separate SignalR status reports live connectivity. The schedule reloads after saves, live invalidations, reconnect or Refresh schedule. Ordinary live refresh waits while you edit; a lab reset expires old forms.
+
+The manager's **Open Friday Rush lab** button enters a separate organization with eight fictional profiles and two locations. Apply creates two missing people; approve a replacement, then fill the standby shift. Reset restores only this lab's baseline and preserves activity history. Native startup and Compose explicitly opt in with Development plus `Simulation__Enabled=true`; Production refuses the feature. Normal workspaces have no reset action.
 
 If already set up, run only `./scripts/dev.ps1`. Stop the web/API with `./scripts/stop.ps1`; stop portable PostgreSQL separately with `./scripts/database.ps1 stop`. Logs and database files live in ignored `.local/`. Do not delete `.local/pgdata` if you want to keep local data. Do not run native and Docker stacks on the same ports simultaneously.
 
@@ -54,13 +56,14 @@ With the seeded web/API running, this additional HTTP workflow exercises both ro
 
 ```text
 node scripts/smoke-workflow.mjs
+node scripts/smoke-milestone-2.mjs
 ```
 
-It creates a synthetic shift and pending coverage request and leaves them in your local demo for inspection. It refuses non-loopback URLs. Repeated runs consume available demo scheduling slots and hours; it is not a reset command.
+The first creates a normal synthetic shift and pending request for inspection; repeated runs consume available slots/hours. The second resets only the manager's lab, exercises the full shortage progression and checks a real SignalR invalidation through the web proxy. Both refuse non-loopback URLs.
 
-Playwright desktop/mobile tests are in `apps/web/tests/e2e`. They require the migrated/seeded API to be running. When browser execution is available, install Chromium with `npx playwright install chromium` from `apps/web`, then run `npm run test:e2e` from the root. The tests cover the sample preview and a real manager-create/assign/reload → employee-availability/request → manager-visibility flow, plus keyboard dialogs and mobile overflow. Credential-flow traces/screenshots/video are disabled. CI starts an isolated PostgreSQL/API and generates masked ephemeral credentials before these tests.
+Playwright desktop/mobile tests are in `apps/web/tests/e2e`. They require the migrated/seeded API to be running. When browser execution is available, install Chromium with `npx playwright install chromium` from `apps/web`, then run `npm run test:e2e` from the root. Tests cover the preview, original staffing flow, employee cancellation, manager approval with automatic refresh in an independent employee session, and lab apply/resolve/standby/reset with another tab's open form. One worker avoids competing resets of the same owner's lab. Credential-flow traces/screenshots/video are disabled. CI starts isolated PostgreSQL/API and masked ephemeral credentials. Local browser automation is not part of this branch's observed verification.
 
-Read the [student walkthrough and self-test guide](docs/learning/milestone-1.md). It explains the code in five increments, why each part exists, and what the checks prove.
+Read the [Milestone 2 student walkthrough and self-test guide](docs/learning/milestone-2.md), alongside the [Milestone 1 foundations](docs/learning/milestone-1.md). They explain the increments, code responsibilities and observed checks.
 
 ## Architecture
 
@@ -78,19 +81,22 @@ One API deployment owns Identity sessions, organization membership, scheduling r
 | `apps/web/src/lib/workspace-api.ts` | Same-origin requests, CSRF and error handling |
 | `src/RushCtrl.Api/Modules/Identity` | Users, memberships, sessions and explicit Development seed |
 | `src/RushCtrl.Api/Modules/Scheduling` | Scheduling endpoints, assignment rules and gap calculation |
+| `src/RushCtrl.Api/Modules/Simulation` | Owner-only fixture, scenario and generation-guarded reset |
+| `src/RushCtrl.Api/Modules/Realtime` | Authorized SignalR groups and committed invalidations |
 | `src/RushCtrl.Api/Infrastructure` | EF context and versioned migrations |
 | `tests/RushCtrl.Api.Tests` | HTTP, domain and isolated PostgreSQL integration tests |
 | `scripts` | Local setup/start/stop, checks and HTTP workflow |
 
-Read the [HTTP contract](docs/api/README.md), [staffing API details](docs/api/milestone-1.md), [architecture ADR](docs/adr/0001-modular-monolith.md) and [identity/tenancy ADR](docs/adr/0002-identity-and-tenancy.md).
+Read the [HTTP contract](docs/api/README.md), [staffing APIs](docs/api/milestone-1.md), [Milestone 2 additions](docs/api/milestone-2.md), [architecture ADR](docs/adr/0001-modular-monolith.md), [tenancy ADR](docs/adr/0002-identity-and-tenancy.md), [ranking policy](docs/adr/0003-explained-replacements.md) and [transaction/live-update ADR](docs/adr/0004-workspace-transactions-and-live-updates.md).
 
 ## Verification status
 
+- Milestone 2: local API/frontend checks, types, lint, production build and actual HTTP/hub workflow pass. See its journal for counts and limitations. This branch's browser/container CI is pending; earlier green runs do not verify these changes.
 - Milestone 1 local API tests, frontend tests, typecheck, lint, production build and the actual HTTP manager/employee workflow have passed. Exact evidence and review status are recorded in the [learning journal](docs/learning/milestone-1.md).
 - All three jobs (API, web and Compose) passed on `acf6c19` in [Checks run 42403546329](https://github.com/Rectrix-21/rushctrl/actions/runs/42403546329). This includes the six configured desktop/mobile browser cases, the complete manager/employee staffing workflow, stale-tab write rejection, keyboard/focus checks and mobile overflow assertions. Compose startup, readiness and the container HTTP workflow passed too.
 - Milestone 0's browser and Compose acceptance passed in [Checks run 41718067240](https://github.com/Rectrix-21/rushctrl/actions/runs/41718067240) for `8d48cfa`. That historical result does not verify Milestone 1 changes.
 - No manual visual/accessibility audit, deployment or paid service is claimed. GitHub repository: `Rectrix-21/rushctrl`.
 
-## After Milestone 1 acceptance
+## After Milestone 2 acceptance
 
-Milestone 2 adds request resolution, atomic replacement approval, candidate ranking with explanations, audit, an isolated Friday Rush simulation/reset workflow and SignalR notifications. Do not describe those as implemented yet.
+Milestone 3 remains presentation, measured performance and broader polish/audits. No deployment is included in Milestone 2.
