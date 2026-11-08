@@ -2,7 +2,7 @@
 
 A staffing operations application for hospitality teams, built with Next.js, ASP.NET Core and PostgreSQL.
 
-**Current stage: Milestone 1 functional workflow — acceptance in progress.** Identity sign-in, organization permissions, saved shifts/assignments, dated availability, pending coverage requests and staffing gaps are implemented locally. The blue glass manager/employee screens use PostgreSQL-backed APIs. Local checks, Docker startup and a complete container HTTP workflow have passed; browser acceptance is still pending CI. All people are synthetic. No real users, operational improvements or production scale are claimed.
+**Current stage: Milestone 1 complete.** Identity sign-in, organization permissions, saved shifts/assignments, dated availability, pending coverage requests and staffing gaps are implemented. The blue glass manager/employee screens use PostgreSQL-backed APIs. API tests, frontend checks, the desktop/mobile browser workflow and Docker startup/HTTP workflow passed in [Checks run 42403546329](https://github.com/Rectrix-21/rushctrl/actions/runs/42403546329) for `acf6c19`. All people are synthetic. No real users, operational improvements or production scale are claimed.
 
 ## Run locally on Windows
 
@@ -87,7 +87,7 @@ Read the [HTTP contract](docs/api/README.md), [staffing API details](docs/api/mi
 ## Verification status
 
 - Milestone 1 local API tests, frontend tests, typecheck, lint, production build and the actual HTTP manager/employee workflow have passed. Exact evidence and review status are recorded in the [learning journal](docs/learning/milestone-1.md).
-- API and Docker Compose acceptance passed again on `6759d3e` in [Checks run 42403270582](https://github.com/Rectrix-21/rushctrl/actions/runs/42403270582). Browser cases now complete creation, assignment/reload, employee availability and coverage submission. They then stop at an ambiguous warning locator, which is now scoped to the sign-in panel and awaits a new run. A build or test listing does not establish complete browser acceptance.
+- All three jobs (API, web and Compose) passed on `acf6c19` in [Checks run 42403546329](https://github.com/Rectrix-21/rushctrl/actions/runs/42403546329). This includes the six configured desktop/mobile browser cases, the complete manager/employee staffing workflow, stale-tab write rejection, keyboard/focus checks and mobile overflow assertions. Compose startup, readiness and the container HTTP workflow passed too.
 - Milestone 0's browser and Compose acceptance passed in [Checks run 41718067240](https://github.com/Rectrix-21/rushctrl/actions/runs/41718067240) for `8d48cfa`. That historical result does not verify Milestone 1 changes.
 - No manual visual/accessibility audit, deployment or paid service is claimed. GitHub repository: `Rectrix-21/rushctrl`.
 

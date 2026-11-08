@@ -1,6 +1,6 @@
 # Milestone 1 learning journal
 
-Milestone 1 is in progress. This journal records working increments; it does not claim the whole milestone is complete.
+**Milestone 1 is complete.** [Checks run 42403546329](https://github.com/Rectrix-21/rushctrl/actions/runs/42403546329) passed API, web/browser and Docker Compose on `acf6c19`; the result was verified on November 8, 2026. The local full suite passed 39 API tests and 20 frontend tests, plus types, lint and production build. This journal records each increment and the debugging lessons. Earlier entries describe the status at that point; the final acceptance below is the current result. This remains a local synthetic application, with request resolution reserved for Milestone 2.
 
 ## 1. Sign-in, sessions and organization membership
 
@@ -79,7 +79,7 @@ If it reports a previous recorded launch, use `./scripts/stop.ps1` first. Setup 
 5. **Employee view:** Sign out, then use the employee account. You should see Morgan's assigned shift and no Create shift button. Add a dated availability window, save, and reload. It should remain. Seeded availability already covers 08:00–20:00, so another overlapping declaration is allowed.
 6. **Request coverage:** Open Request coverage on the future assigned Wednesday shift. Read the limitation before submitting: this milestone cannot cancel/resolve the request, and the manager cannot reassign it while pending. After submitting, expect Pending and an unchanged assignment. Do not use this action on a shift you want to keep experimenting with assigning.
 7. **Manager visibility:** Sign out/in as manager. The request should appear in Coverage requests and the shift should show Request pending. Use a private browser window if you want both roles open simultaneously; ordinary tabs share sign-in cookies. Schedule updates from a different window require Refresh schedule.
-8. **Keyboard and mobile:** Tab through controls; focus should be visible. Open a form and press Escape: it should close and return focus to its trigger. A successful save moves focus to its confirmation. Narrow the browser or use mobile emulation: forms and schedule cards should stay inside the page. These are manual checks for you to observe, not checks claimed as already passed by automation here.
+8. **Keyboard and mobile:** Tab through controls; focus should be visible. Open a form and press Escape: it should close and return focus to its trigger. A successful save moves focus to its confirmation. Narrow the browser or use mobile emulation: forms and schedule cards should stay inside the page. CI now passes the specific Escape/focus and overflow assertions; your own visual check is still useful and a full accessibility audit is not claimed.
 
 The [HTTP smoke script](../../scripts/smoke-workflow.mjs) already left synthetic requests/assignments on the seeded Monday. Pick a free period for your own exercise. There is no demo reset/delete action yet; that belongs to Milestone 2.
 
@@ -87,14 +87,14 @@ The [HTTP smoke script](../../scripts/smoke-workflow.mjs) already left synthetic
 
 | Check | Observed result for this branch |
 | --- | --- |
-| Full local `./scripts/check.ps1` after review fixes | API 39/39; frontend 19/19; typecheck, lint and production build passed |
+| Full local `./scripts/check.ps1` after review and dialog fixes | API 39/39; frontend 20/20; typecheck, lint and production build passed |
 | Test-driven regressions | Missing endpoints/time/rules, gap algorithm, suggested-week privacy and uncertain save outcomes were observed failing before their fixes |
 | Native startup after script updates | Build/migrate/seed/start succeeded; existing demo edits preserved |
 | Actual web-proxy HTTP workflow | Passed after review fixes, including fresh-session persistence, both roles, stale shared-cookie write rejection and explicit re-login |
 | EF model versus migration | No pending model changes |
 | Compose configuration | Validated with the standalone Compose CLI; no secret-expanded output printed |
 | Playwright discovery | Six desktop/mobile cases registered; discovery does not execute a browser |
-| New branch browser + Compose startup | Pending CI; local browser automation is unavailable and no local Docker engine is installed |
+| Branch browser + Compose startup | Passed on `acf6c19` in run 42403546329: API, web and Compose jobs all succeeded; local browser/Docker execution is not claimed |
 | Independent code review | Two Important findings fixed with failing-then-passing regressions; no Critical or Minor findings raised; no second review claimed |
 
 Run `./scripts/check.ps1` for local automated checks. Run `node scripts/smoke-workflow.mjs` only when you want it to add another synthetic assignment/request. GitHub Actions is configured to test the API, start a real seeded stack for Playwright, and run the HTTP workflow against Docker Compose. A successful historical Milestone 0 run does not verify these new changes.
@@ -121,10 +121,10 @@ A separate follow-up run of all 21 database integration cases also passed after 
 - Keep request resolution, replacement approval, ranking, audit, simulation/reset and SignalR for M2. Pending requests cannot yet be resolved or cancelled; that limitation is visible before submission.
 - Availability editing/deletion and qualification/hour-cap administration remain outside this milestone. Local setup owns those seeded settings for now.
 - Public registration/recovery, deployment and production operational hardening remain outside the authorized local synthetic application. This is not a public service.
-- Browser layout/keyboard execution and Docker startup cannot be certified from static review. They remain pending this branch's CI run and owner visual checks.
+- Browser layout/keyboard execution and Docker startup required CI rather than static review. The configured browser checks and container workflow now pass; a manual visual/accessibility audit is not claimed.
 - Seed reruns preserve existing shifts instead of replenishing them automatically each week. A long-lived demo may need a future reset or fresh seed workflow.
 
-No review minors were deferred. Milestone 1 remains awaiting browser/container acceptance, so retain its progress ledger until that evidence arrives. The older Milestone 0 run cannot substitute for those checks.
+No review minors were deferred. Milestone 1's browser/container acceptance is now recorded below. The older Milestone 0 run was not used as a substitute for those checks.
 
 ## First GitHub acceptance run
 
@@ -165,3 +165,11 @@ The workflow now verifies that the page remains at the workspace URL, locates th
 [Run 42403270582](https://github.com/Rectrix-21/rushctrl/actions/runs/42403270582), testing `6759d3e`, passed API and Compose again. Both browser cases completed creation, assignment, reload persistence, employee availability and coverage request submission. They reached the stale-tab sign-in warning, but its assertion failed because an unscoped `getByRole("alert")` matched both the application warning and Next.js's route-announcer alert. The test now scopes that lookup to the accessible **Sign in to your workspace** region. This preserves the warning assertion and leaves the framework's accessibility announcer intact. The remaining stale-write-count, manager-request visibility and final mobile checks still require the next browser run; the milestone is not yet accepted.
 
 For learning: Playwright's “strict mode violation” here means a locator matched more than one element. This differs from React Strict Mode, which exercises component lifecycles. Scoping a locator to the intended panel removes ambiguity while continuing to check the same user-visible behavior. Type checking and lint passed after this selector-only correction.
+
+## Final acceptance and your next exercise
+
+[Checks run 42403546329](https://github.com/Rectrix-21/rushctrl/actions/runs/42403546329) completed successfully on `acf6c19`. The API job passed build and tests. The web job passed unit/component tests, type checking, lint, production build and the configured Playwright cases. The Compose job passed container build/startup, metadata/readiness and the real proxy HTTP workflow. No failure annotations were present when checked.
+
+The browser workflow now completes on desktop and mobile: manager sign-in, creation, assignment, reload persistence, employee sign-in, availability save, Escape/focus behavior, coverage request, shared-cookie account switching, stale-write blocking, explicit re-login, manager request visibility, pending-assignment protection and overflow checks. Passing these specific assertions does not imply an exhaustive security or accessibility audit.
+
+Milestone 1 is finished on branch `milestone-1`; it is not merged or deployed. The completion commit changes documentation/checklist records only. Milestone 2 features remain unimplemented. To practise, use the self-test steps above: create a free Wednesday shift and matching staffing target, assign Morgan, reload, and explain why the gap disappears. Then inspect the request path in `SchedulingEndpoints.cs` and `AssignmentService.cs`. The file currently open under `.local/pgdata/base/` is PostgreSQL's internal storage, not application source; use the components, API modules and this guide for your code exploration.
