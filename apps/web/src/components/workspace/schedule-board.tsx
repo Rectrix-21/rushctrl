@@ -383,7 +383,11 @@ export function ScheduleBoard({
                 </p>
               )}
               {data.requests.map((r) => (
-                <article className="coverage-gap" key={r.id}>
+                <article
+                  className="coverage-gap"
+                  key={r.id}
+                  data-request-shift-id={r.shiftId}
+                >
                   <span className="soft-badge">{r.status}</span>
                   {r.kind === "SimulationCallout" && (
                     <small>

@@ -45,6 +45,6 @@ Assignment requires membership, the required skill, full coverage by the union o
 
 The assignment transaction locks the shift and employee, checks its version and saves a new version. PostgreSQL exclusion constraints reject double booking and overlapping same-skill staffing requirements even if application checks race. Stale/conflicting writes return 409. The UI must refresh; it must not silently retry a mutation whose response was lost.
 
-Availability is immediate and additive; no edit/delete/approval route is claimed. A pending coverage request keeps the employee assigned and blocks reassignment/unassignment. There is no request cancellation/resolution endpoint until Milestone 2. The UI explains this before submission.
+Availability is immediate and additive; no general edit/delete/approval route is claimed. A Standard pending coverage request keeps the employee assigned and blocks direct reassignment/unassignment. [Milestone 2](milestone-2.md) adds cancellation, rejection, approval and retained resolution history; only Pending requests block new requests/assignments.
 
 Coverage counts assigned shifts matching the target's organization, location and skill. It splits at shift boundaries, reports shortages only, and merges adjacent periods with the same shortage. Open shifts are separate unassigned work; they do not count as staffed coverage.

@@ -14,7 +14,7 @@ public static class AuditCapture
         {
             Shift x => (x.OrganizationId, x.Id, entry.State == EntityState.Added ? "Shift.Created" : entry.Property(nameof(Shift.AssigneeUserId)).IsModified ? "Shift.AssignmentChanged" : "Shift.Changed", x.AssigneeUserId),
             CoverageRequest x => (x.OrganizationId, x.Id, entry.State == EntityState.Added ? "CoverageRequest.Created" : "CoverageRequest." + x.Status, x.ReplacementUserId),
-            AvailabilityWindow x => (x.OrganizationId, x.Id, "Availability.Declared", (Guid?)x.UserId),
+            AvailabilityWindow x => (x.OrganizationId, x.Id, entry.State == EntityState.Deleted ? "Availability.Removed" : "Availability.Declared", (Guid?)x.UserId),
             StaffingRequirement x => (x.OrganizationId, x.Id, entry.State == EntityState.Added ? "StaffingTarget.Created" : "StaffingTarget.Changed", (Guid?)null),
             _ => (Guid.Empty, Guid.Empty, "", (Guid?)null)
         };

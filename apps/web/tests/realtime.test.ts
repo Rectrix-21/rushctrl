@@ -96,7 +96,7 @@ test("writes keep the form's captured generation and identity checks never rebin
   const client = createWorkspaceClient(async (url, options) => {
     if (String(url).endsWith("/session"))
       return Response.json({
-        id: identity,
+        id: owner,
         displayName: "Alex",
         memberships: [],
       });
@@ -113,6 +113,10 @@ test("writes keep the form's captured generation and identity checks never rebin
   await client.assertIdentity();
   await client.save("/lab/availability", {}, "POST", generation);
   owner = changedGeneration;
+  await assert.rejects(
+    client.refreshSession(),
+    (e: unknown) => e instanceof ApiError && e.status === 401,
+  );
   await assert.rejects(
     client.assertIdentity(),
     (e: unknown) => e instanceof ApiError && e.status === 401,

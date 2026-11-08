@@ -1,38 +1,8 @@
-import { readFileSync } from "node:fs";
-import { expect, test, type Page, type Request } from "@playwright/test";
+import { passwords, signIn } from "./helpers";
+import { expect, test, type Request } from "@playwright/test";
 import { addDays, dayLabel } from "../../src/lib/schedule-view";
 
 test.use({ trace: "off", screenshot: "off", video: "off" });
-
-function passwords() {
-  const config = Object.fromEntries(
-    readFileSync(new URL("../../../../.env", import.meta.url), "utf8")
-      .split(/\r?\n/)
-      .filter((line) => /^[A-Z_]+=/.test(line))
-      .map((line) => {
-        const index = line.indexOf("=");
-        return [line.slice(0, index), line.slice(index + 1)];
-      }),
-  );
-  const manager =
-    process.env.DEMO_MANAGER_PASSWORD ?? config.DEMO_MANAGER_PASSWORD;
-  const employee =
-    process.env.DEMO_EMPLOYEE_PASSWORD ?? config.DEMO_EMPLOYEE_PASSWORD;
-  if (!manager || !employee)
-    throw new Error(
-      "Run local setup/dev or the CI demo seed before the workflow test.",
-    );
-  return { manager, employee };
-}
-
-async function signIn(page: Page, email: string, password: string) {
-  await expect(
-    page.getByRole("heading", { name: "Sign in to your workspace" }),
-  ).toBeVisible();
-  await page.getByLabel("Email", { exact: true }).fill(email);
-  await page.getByLabel("Password", { exact: true }).fill(password);
-  await page.getByRole("button", { name: "Sign in", exact: true }).click();
-}
 
 test("manager and employee complete a saved staffing workflow", async ({
   page,
@@ -80,7 +50,7 @@ test("manager and employee complete a saved staffing workflow", async ({
     })
     .locator("[data-shift-id]")
     .filter({
-      has: page.getByText(`${hour}:00–${hour + 2}:00`, { exact: true }),
+      has: page.getByText(`${hour}:00â€“${hour + 2}:00`, { exact: true }),
     });
   await expect(createdCard).toHaveCount(1);
   await expect(createdCard).toContainText("Barista");
@@ -93,7 +63,7 @@ test("manager and employee complete a saved staffing workflow", async ({
     .click();
   await page
     .getByRole("combobox", { name: "Employee", exact: true })
-    .selectOption({ label: "Morgan Park" });
+    .selectOption("10000000-0000-0000-0000-000000000004");
   await dialog
     .getByRole("button", { name: "Save assignment", exact: true })
     .click();
@@ -141,7 +111,7 @@ test("manager and employee complete a saved staffing workflow", async ({
   await dialog
     .getByRole("button", { name: "Submit coverage request", exact: true })
     .click();
-  await expect(row).toContainText("Coverage requested · Pending");
+  await expect(row).toContainText("Coverage requested Â· Pending");
   await addAvailability.click();
   const otherTab = await context.newPage();
   await otherTab.goto("/");
@@ -171,7 +141,7 @@ test("manager and employee complete a saved staffing workflow", async ({
   page.off("request", observe);
   await otherTab.close();
   await signIn(page, "manager@northline.example", credentials.manager);
-  await expect(row).toContainText("Coverage requested · Pending");
+  await expect(row).toContainText("Coverage requested Â· Pending");
   await expect(page.locator("#requests")).toContainText("Morgan Park");
   await expect(
     row.getByRole("button", { name: "Request pending", exact: true }),

@@ -36,9 +36,10 @@ The baseline has two assigned people and a target of two. Apply raises the targe
 
 A generation token identifies one run of the experiment. Every lab save must carry the token from the form it opened with. Reset changes that token. An old form therefore receives a conflict instead of accidentally saving into the new experiment. The organization transaction lock also makes a reset racing with approval finish in a consistent order.
 
-**Observed checks:** Missing simulator routes failed first. All 49 API tests then passed, including the full 0 ? 2 ? 1 ? 0 workflow, no-password identities, two locations, normal workspace preservation, audit retention, missing/malformed/old generations, edited/expired/repeated Apply, role/environment/source restrictions and concurrent reset/approval. Native HTTP verification will run with the connected screens in the next increment; the currently running app is still the accepted Milestone 1 version.
+**Observed checks:** Missing simulator routes failed first. All 49 API tests then passed, including the full 0 → 2 → 1 → 0 workflow, no-password identities, two locations, normal workspace preservation, audit retention, missing/malformed/old generations, edited/expired/repeated Apply, role/environment/source restrictions and concurrent reset/approval. At this increment the running app was still Milestone 1; section 4 records the later native startup and HTTP verification.
 
 **Exercise:** Imagine opening an assignment form, resetting in another tab, then pressing Save. Explain why the server must compare the captured generation rather than simply using the newest one. Find that comparison in `WorkspaceMutationFilter.cs`.
+
 
 ## 4. Connected screens and live refresh
 
@@ -50,4 +51,34 @@ An ordinary invalidation waits while a form is open. A new simulation generation
 
 **Observed checks:** The hub test failed on the missing endpoint, and the new client tests failed before the live-update module existed. All 51 API tests and 23 frontend tests now pass, with types, lint and production build passing. Hub tests exercise authentication, membership validation, leaving the old group, committed audit visibility and notification failure after commit. Client tests exercise coalescing, editing queues, reset invalidation and stale identity on reconnect/save. Native HTTP plus the official SignalR client passed through the actual Next proxy, including the full lab shortage progression, preserved audit and old-generation rejection. A separate regression caught lab names taking over the default workspace; normal-first ordering now passes.
 
-**Exercise:** Disconnect the API while the page stays open. Explain why the saved schedule and a �connected� live indicator are different claims. Then explain why a notification failure after commit must not tell the user that their save failed.
+**Exercise:** Disconnect the API while the page stays open. Explain why the saved schedule and a “connected” live indicator are different claims. Then explain why a notification failure after commit must not tell the user that their save failed.
+
+## 5. Test it yourself
+
+Open `http://localhost:3000`, or start the app with `./scripts/dev.ps1` from the repository's VS Code terminal. Your generated credentials are in the ignored `.local/demo-accounts.txt`. Keep passwords out of commits and screenshots.
+
+### Start with Friday Rush
+
+1. Sign in as manager and choose **Open Friday Rush lab**. If you have experimented before, choose **Reset lab**, read the confirmation, then **Restore baseline**.
+2. The baseline target is covered. Choose **Apply Friday Rush**. Expect **2 people short** and Cameron's simulation callout. Apply removes Cameron's lab availability too, so the absent employee cannot be chosen for standby.
+3. Choose **Review replacements**. Avery and Riley are eligible, with four and eight scheduled hours respectively. Expand **Why others are unavailable** and explain each reason in your own words. Choose Avery and approve. Expect **1 person short**.
+4. Find the remaining open Friday shift. Choose **Assign employee**, select Riley and save. Expect all targets covered. The replacement filled the absence; standby filled the added demand.
+5. Read **Activity history**, then expand **Change details**. Identify the actor, time and action. **Older activity** pages backwards; **Latest activity** returns to the newest page.
+6. Open another normal browser tab with the same account. Select **Friday Rush Lab** in Organization, wait for **Live updates connected**, and open **Create shift**. Reset in the first tab. The other tab's old form should close with an explanation. The server also rejects old generation tokens if a screen misses the notification.
+7. Return to the normal workspace. Ordinary shifts and requests remain saved. Reset preserves lab history and reuses its eight fictional profiles.
+
+### Try the ordinary request flow
+
+Use a private browser window for the employee; ordinary tabs share cookies. As manager, create a future Barista shift within Morgan's declared availability and assign Morgan. In the private window, Morgan can request coverage, cancel it, then request again. The manager can approve an eligible different person or reject the request. Approved history remains on Morgan's screen while the shift leaves Morgan's schedule. With both windows connected, updates should appear without Refresh.
+
+If nobody is eligible, the explanation is the result. Choose an interval satisfying the rules or declare availability under the appropriate person's own sign-in. Overlap and hour limits still block saves. A version conflict asks you to review current data again.
+
+### Run checks and understand Git
+
+Run `./scripts/check.ps1` for API/frontend tests, types, lint and production build. With the app running, `node scripts/smoke-milestone-2.mjs` exercises HTTP and SignalR, resetting only your lab. The older `smoke-workflow.mjs` adds an ordinary synthetic shift/request, so run it deliberately.
+
+Eight desktop/mobile browser cases register locally; discovery is not browser execution. Actual browser/container acceptance remains pending this branch's GitHub Actions run. No local browser automation or Docker engine is being installed to bypass existing limits.
+
+A **commit** is a named snapshot. A **branch** keeps this milestone separate from accepted work. VS Code **Publish Branch** uploads it; later **Sync Changes** uploads additional commits. **CI** is GitHub running checks on its own clean machine. Inspect Actions for the exact latest commit before calling the milestone accepted. Merging is a later owner decision.
+
+We used tests in the order “show missing behavior, implement, check again.” That is test-driven development. Independent review adds another reading of the whole change; neither replaces exercising the application.

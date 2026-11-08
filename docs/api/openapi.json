@@ -417,10 +417,238 @@
           }
         }
       }
+    },
+    "/api/v1/organizations/{organizationId}/audit": {
+      "get": {
+        "tags": [
+          "RushCtrl.Api"
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          },
+          {
+            "name": "beforeNumber",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/organizations/{organizationId}/coverage-requests/{id}/approve": {
+      "post": {
+        "tags": [
+          "RushCtrl.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApprovalInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/organizations/{organizationId}/coverage-requests/{id}/reject": {
+      "post": {
+        "tags": [
+          "RushCtrl.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResolutionInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/organizations/{organizationId}/coverage-requests/{id}/cancel": {
+      "post": {
+        "tags": [
+          "RushCtrl.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResolutionInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/organizations/{organizationId}/simulation": {
+      "post": {
+        "tags": [
+          "RushCtrl.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "RushCtrl.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/organizations/{organizationId}/simulation/apply": {
+      "post": {
+        "tags": [
+          "RushCtrl.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/organizations/{organizationId}/simulation/reset": {
+      "post": {
+        "tags": [
+          "RushCtrl.Api"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/v1/organizations/{organizationId}/shifts/{id}/candidates": {
+      "get": {
+        "tags": [
+          "RushCtrl.Api"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
     }
   },
   "components": {
     "schemas": {
+      "ApprovalInput": {
+        "required": [
+          "version",
+          "shiftVersion",
+          "userId"
+        ],
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "shiftVersion": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
       "AssignmentInput": {
         "required": [
           "userId",
@@ -548,6 +776,18 @@
               "string"
             ],
             "format": "int32"
+          }
+        }
+      },
+      "ResolutionInput": {
+        "required": [
+          "version"
+        ],
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "string",
+            "format": "uuid"
           }
         }
       },

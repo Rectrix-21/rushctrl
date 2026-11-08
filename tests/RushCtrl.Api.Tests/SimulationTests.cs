@@ -50,6 +50,8 @@ public sealed class SimulationTests
         gaps = await manager.GetFromJsonAsync<JsonElement>(Route(org, "coverage" + query)); Assert.Equal(1, gaps[0].GetProperty("missingCount").GetInt32());
         var standby = lab.GetProperty("standbyShiftId").GetGuid();
         candidates = await manager.GetFromJsonAsync<JsonElement>(Route(org, $"shifts/{standby}/candidates"));
+        Assert.Single(candidates.GetProperty("eligible").EnumerateArray());
+        Assert.DoesNotContain(candidates.GetProperty("eligible").EnumerateArray(), x => x.GetProperty("userId").GetGuid() == request.GetProperty("requesterUserId").GetGuid());
         Assert.Equal(HttpStatusCode.OK, (await manager.PatchAsJsonAsync(Route(org, $"shifts/{standby}/assignment"), new { version = candidates.GetProperty("shiftVersion").GetGuid(), userId = candidates.GetProperty("eligible")[0].GetProperty("userId").GetGuid() })).StatusCode);
         Assert.Empty((await manager.GetFromJsonAsync<JsonElement>(Route(org, "coverage" + query))).EnumerateArray());
         var reset = await manager.PostAsJsonAsync(Route(org, "simulation/reset"), new { }); Assert.Equal(HttpStatusCode.OK, reset.StatusCode);
@@ -121,5 +123,11 @@ public sealed class SimulationTests
         Assert.Equal(2, await db.Locations.IgnoreQueryFilters().CountAsync(x => x.OrganizationId == org));
         await db.Database.ExecuteSqlInterpolatedAsync($"INSERT INTO \"Memberships\" (\"OrganizationId\",\"UserId\",\"Permission\",\"MaxWeeklyHours\") VALUES ({f.OtherOrganizationId},{f.ManagerId},'Manager',40)");
         Assert.Equal(HttpStatusCode.NotFound, (await manager.PostAsJsonAsync(Route(f.OtherOrganizationId, "simulation"), new { })).StatusCode);
+        using var otherOwner = await f.Login("employee@example.test");
+        await db.Database.ExecuteSqlInterpolatedAsync($"UPDATE \"Memberships\" SET \"Permission\" = 'Manager' WHERE \"OrganizationId\" = {f.OrganizationId} AND \"UserId\" = {f.EmployeeId}");
+        Assert.Equal(HttpStatusCode.NotFound, (await otherOwner.GetAsync(Route(org, "simulation"))).StatusCode);
+        var otherLab = await Open(f, otherOwner);
+        Assert.NotEqual(org, otherLab.GetProperty("organizationId").GetGuid());
+        Assert.Equal(HttpStatusCode.NotFound, (await manager.GetAsync(Route(otherLab.GetProperty("organizationId").GetGuid(), "simulation"))).StatusCode);
     }
 }

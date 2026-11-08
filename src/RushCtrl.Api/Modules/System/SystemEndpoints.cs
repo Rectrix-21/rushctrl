@@ -13,7 +13,7 @@ public static class SystemEndpoints
             return Results.Json(new HealthStatus(ready ? "healthy" : "unhealthy"), statusCode: ready ? 200 : 503);
         }).AllowAnonymous().WithName("Readiness").WithTags("System")
             .Produces<HealthStatus>().Produces<HealthStatus>(503);
-        app.MapGet("/api/v1/system", () => TypedResults.Ok(new SystemMetadata("RUSHCTRL", "0.1.0", 1)))
+        app.MapGet("/api/v1/system", () => TypedResults.Ok(new SystemMetadata("RUSHCTRL", "0.1.0", 2)))
             .AllowAnonymous().WithName("SystemMetadata").WithTags("System");
     }
 }

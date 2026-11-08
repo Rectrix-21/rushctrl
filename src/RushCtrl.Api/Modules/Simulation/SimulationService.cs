@@ -69,6 +69,7 @@ public sealed class SimulationService(RushCtrlDbContext db, TenantScope tenant, 
         target.RequiredCount = 3;
         absent.AssigneeUserId = null;
         absent.Version = Guid.NewGuid();
+        db.AvailabilityWindows.RemoveRange(await db.AvailabilityWindows.Where(x => x.UserId == ids[0]).ToListAsync(ct));
         db.CoverageRequests.Add(new CoverageRequest { OrganizationId = lab.OrganizationId, ShiftId = absent.Id,
             RequesterUserId = ids[0], Kind = "SimulationCallout", CreatedAt = clock.GetUtcNow() });
         lab.Applied = true; lab.Pristine = false;
