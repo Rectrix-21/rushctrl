@@ -1,6 +1,6 @@
 # Milestone 2: explain and resolve staffing shortages
 
-Status: Proposed design for owner review. The owner clarified that Milestone 2 is next; Milestone 3 is not being started. No Milestone 2 product code or dependencies have been added. Branch `milestone-2` starts at merged commit `0c16536`, in the owner's existing VS Code folder.
+Status: Approved by the owner on November 8, 2026: “Approve and build Milestone 2.” Milestone 3 is not being started. Branch `milestone-2` starts at merged commit `0c16536`, in the owner's existing VS Code folder. The approval covers this local synthetic workflow; it does not authorize deployment or external services.
 
 ## Intent and boundaries
 
