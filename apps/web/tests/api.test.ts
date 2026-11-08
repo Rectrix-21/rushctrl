@@ -7,6 +7,11 @@ import {
 } from "../src/lib/api.ts";
 
 const metadata = { name: "RUSHCTRL", version: "0.1.0", milestone: 0 };
+test("a new milestone remains healthy while invalid milestone values are rejected", async () => {
+  assert.equal(await loadConnectionState(respond(Response.json({ ...metadata, milestone: 1 }), Response.json({ status: "healthy" }))), "ready");
+  for (const milestone of [-1, "1", 1.5])
+    assert.equal(await loadConnectionState(respond(Response.json({ ...metadata, milestone }), Response.json({ status: "healthy" }))), "api-unavailable");
+});
 function respond(
   system: Response | Error,
   database: Response | Error,

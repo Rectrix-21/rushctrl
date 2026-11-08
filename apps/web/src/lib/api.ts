@@ -39,7 +39,9 @@ export async function loadConnectionState(
       !("version" in metadata) ||
       typeof metadata.version !== "string" ||
       !("milestone" in metadata) ||
-      metadata.milestone !== 0
+      typeof metadata.milestone !== "number" ||
+      !Number.isInteger(metadata.milestone) ||
+      metadata.milestone < 0
     )
       return "api-unavailable";
   } catch {

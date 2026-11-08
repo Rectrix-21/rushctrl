@@ -1,16 +1,16 @@
-# Milestone 0 HTTP contract
+﻿# RUSHCTRL HTTP contract
 
-The API listens locally at `http://127.0.0.1:5080`. The web app forwards the API and health paths from its own origin. No route accepts real staff data.
+The API listens locally at `http://127.0.0.1:5080`. Next.js forwards `/api/*`, `/health/live` and `/health/ready` from its own origin. All identities and staffing records used by this local demo are synthetic.
 
 | Method/path | Success | Failure / scope |
 | --- | --- | --- |
 | GET `/health/live` | 200 `{"status":"healthy"}` | Public, process-only liveness |
-| GET `/health/ready` | 200 `{"status":"healthy"}` | 503 `{"status":"unhealthy"}` if PostgreSQL is unreachable, migrations are pending or expected tables cannot be queried |
-| GET `/api/v1/system` | 200 `{"name":"RUSHCTRL","version":"0.1.0","milestone":0}` | Public operational metadata only |
-| GET `/openapi/v1.json` | 200 generated OpenAPI document | Development only; 404 in Production; direct API origin |
+| GET `/health/ready` | 200 `{"status":"healthy"}` | Public; 503 if PostgreSQL is unreachable, migrations are pending or expected tables cannot be queried |
+| GET `/api/v1/system` | 200 `{"name":"RUSHCTRL","version":"0.1.0","milestone":1}` | Public operational metadata only |
+| GET `/openapi/v1.json` | Generated OpenAPI document | Development only; direct API origin; 404 in Production |
 
-Readiness is not cached and its public payload does not expose connection strings, exception messages or tenant records. The generated [OpenAPI snapshot](openapi.json) documents implemented operational endpoints. Regenerate the snapshot from the running Development API after contract changes.
+Readiness is not cached and does not expose connection strings, exception details or tenant records. Requests carry an `X-Request-Id` correlation header. Unknown routes and rule failures use Problem Details. Protected routes return 401 without redirecting for anonymous callers; manager-only actions return 403 for an employee member; inaccessible organizations/resources return 404.
 
-The request pipeline emits an `X-Request-Id` correlation header and structured request logs. Unhandled errors use Problem Details. Unknown routes return a 404 Problem Details response. Future protected routes inherit an authenticated-user policy and return 401 for anonymous callers; forbidden API calls return 403. The protected test route exists only in test-host configuration and is not shipped.
+Milestone 1 implements [sessions, staffing and coverage APIs](milestone-1.md). That document specifies payloads, interval/time-zone semantics and permission boundaries. The [OpenAPI snapshot](openapi.json) is generated from the running Development API; refresh it after route changes. Anonymous-result response bodies are described in the Markdown contract rather than all being inferred into OpenAPI schemas.
 
-No staffing, identity, tenant listing, recommendation or simulation contract is claimed as implemented in this milestone.
+Ranking, request resolution/approval, simulations, audit and live notification contracts are deferred to Milestone 2.

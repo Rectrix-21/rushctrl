@@ -9,22 +9,26 @@
     "start": "next start --hostname 127.0.0.1",
     "lint": "eslint .",
     "typecheck": "next typegen && tsc --noEmit",
-    "test": "node --test tests/api.test.ts",
+    "test": "tsx --test tests/*.test.ts tests/*.test.tsx",
     "test:e2e": "playwright test"
   },
   "dependencies": {
+    "lucide-react": "1.66.0",
     "next": "16.4.4",
     "react": "19.3.1",
     "react-dom": "19.3.1",
-    "lucide-react": "1.66.0"
+    "zod": "4.6.7"
   },
   "devDependencies": {
-    "typescript": "7.0.2",
-    "eslint": "10.14.0",
-    "eslint-config-next": "16.4.4",
+    "@playwright/test": "1.64.1",
+    "@types/jsdom": "30.0.0",
     "@types/node": "24.10.1",
     "@types/react": "19.2.7",
     "@types/react-dom": "19.2.3",
-    "@playwright/test": "1.64.1"
+    "eslint": "10.14.0",
+    "eslint-config-next": "16.4.4",
+    "jsdom": "31.0.0",
+    "tsx": "4.23.15",
+    "typescript": "7.0.2"
   }
 }
